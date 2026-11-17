@@ -243,7 +243,7 @@ internal static class ClearAndLineupSourceViewTests
             Pump();
             var search = (TextBox)trackingView.DeployPage.FindName("PoolSearch");
             search.Text.Should().Be("甲");
-            var poolCard = Descendants<Grid>((StackPanel)trackingView.DeployPage.FindName("PoolGroups"))
+            var poolCard = Descendants<Grid>(trackingView.DeployPage)
                 .Single(x => x.ToolTip is string tip && tip.StartsWith("甲 · "));
             poolCard.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonUpEvent });
             Pump();
@@ -257,7 +257,7 @@ internal static class ClearAndLineupSourceViewTests
             search.Text.Should().BeEmpty();
             search.Text = "丙"; // A manually entered filter is not a navigated lookup.
             Pump();
-            poolCard = Descendants<Grid>((StackPanel)trackingView.DeployPage.FindName("PoolGroups"))
+            poolCard = Descendants<Grid>(trackingView.DeployPage)
                 .Single(x => x.ToolTip is string tip && tip.StartsWith("丙 · "));
             poolCard.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonUpEvent });
             Pump();

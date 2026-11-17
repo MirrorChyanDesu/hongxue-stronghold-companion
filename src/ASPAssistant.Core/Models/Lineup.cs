@@ -28,6 +28,14 @@ public class LineupSlot
     [JsonPropertyName("operatorName")]
     public string OperatorName { get; set; } = "";
 
+    [JsonPropertyName("isReserve")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool IsReserve { get; set; }
+
+    [JsonPropertyName("guideLoadout")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public SklandLoadout? GuideLoadout { get; set; }
+
     /// <summary>只用于读取旧版数据；导入时转换为实际装备后清除。</summary>
     [JsonPropertyName("transformedCovenant")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -91,6 +99,19 @@ public class Lineup
     [JsonPropertyName("sourceUrl")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? SourceUrl { get; set; }
+
+    [JsonPropertyName("sklandGuide")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public SklandGuideContent? SklandGuide { get; set; }
+
+    [JsonPropertyName("editorStages")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<SklandGuideStage>? EditorStages { get; set; }
+
+    [JsonPropertyName("autoRoute")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonConverter(typeof(AutoRouteArchiveConverter))]
+    public AutoRouteArchive? AutoRoute { get; set; }
 
     [JsonPropertyName("sourceContentHash")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

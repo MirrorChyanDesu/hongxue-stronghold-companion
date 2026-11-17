@@ -1,5 +1,6 @@
 // Modified for ASP Assistant Arknights on 2026-11-13; see NOTICE.
 using System.Collections.ObjectModel;
+using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using ASPAssistant.Core.Models;
 using ASPAssistant.Core.Services;
@@ -7,13 +8,14 @@ using ASPAssistant.Core.Services;
 namespace ASPAssistant.Core.ViewModels;
 
 /// <summary>
-/// 阵容编辑会话的临时 view-model：通常持有 9 个槽位，导入候选完整保留并在保存前限制人数。
-/// 带森蚺“暴躁铁皮”策略时，每个阶段的 9 个槽位里有一个是铁皮（占 1 人口，单独显示）。
+/// 阵容编辑会话的临时 view-model：每阶段持有 15 个干员槽位。
+/// 带森蚺“暴躁铁皮”策略时，每个阶段的 15 个槽位里有一个是铁皮（占 1 人口，单独显示）。
 /// 所有修改后调用 <see cref="Recalculate"/> 刷新激活盟约统计。
 /// </summary>
 public partial class LineupEditorViewModel : ObservableObject
 {
-    public const int MaxSlots = 9;
+    public const int MaxSlots = 15;
+    public const int MaxStrategySlots = 9;
     public const int MaxTagsPerSlot = 2;
 
     private readonly CovenantCalculator _calculator;
@@ -25,6 +27,19 @@ public partial class LineupEditorViewModel : ObservableObject
     private readonly Dictionary<LineupPhase, ObservableCollection<LineupSlot>> _phaseSlots = [];
     private readonly LineupPhase _initialPhase;
     private readonly List<LineupStrategySlot> _initialStrategies;
+
+    private SklandGuideContent? _guide;
+    private readonly SklandGuideContent? _initialGuide;
+    private readonly Dictionary<LineupPhase, int> _guidePhases = [];
+    private List<SklandGuideStage> _stages = [];
+    private readonly List<SklandGuideStage> _initialStages;
+    private bool _localStageEdits;
+    private readonly bool _initialLocalStageEdits;
+    public bool HasGuide => _guide is not null;
+    public SklandGuideContent? Guide => _guide;
+    public SklandGuideStage CurrentStage => _stages[_guidePhases[CurrentPhase]];
+    public SklandGuideStage? CurrentGuideStage => HasGuide ? CurrentStage : null;
+    public IReadOnlyDictionary<LineupPhase, string> PhaseLabels => _guidePhases.OrderBy(p => p.Value).ToDictionary(p => p.Key, p => _stages[p.Value].Name);
 
     public ObservableCollection<LineupStrategySlot> StrategySlots { get; } = [];
 
@@ -57,7 +72,17 @@ public partial class LineupEditorViewModel : ObservableObject
                 }
             foreach (var (phase, slots) in _phaseSlots)
                 if (slots.Count(s => s.OperatorName.Length > 0) > MaxSlots)
-                    return $"{phase}超过 {MaxSlots} 人（暴躁铁皮也占 1 人口），请筛选至 {MaxSlots} 人以内再保存";
+                    return $"{PhaseLabels.GetValueOrDefault(phase, phase.ToString())}超过 {MaxSlots} 人（暴躁铁皮也占 1 人口），请移除多余干员后保存";
+            foreach (var stage in _stages)
+                {
+                    if (string.IsNullOrWhiteSpace(stage.Name)) return "请填写阶段名称。";
+                    if (stage.StartRound.HasValue != stage.EndRound.HasValue) return "开始和结束回合需同时填写，也可以同时留空。";
+                    if (stage.StartRound < 1 || stage.EndRound > 15 || stage.StartRound > stage.EndRound) return "阶段开始回合不能晚于结束回合，且必须位于1–15回合。";
+                }
+            var rounds = _stages.Where(s => !s.IsFinal && s.StartRound.HasValue).OrderBy(s => s.StartRound).ToList();
+            for (int i = 1; i < rounds.Count; i++)
+                if (rounds[i].StartRound <= rounds[i - 1].EndRound)
+                    return $"阶段“{rounds[i - 1].Name}”（{rounds[i - 1].StartRound}–{rounds[i - 1].EndRound}回合）与“{rounds[i].Name}”（{rounds[i].StartRound}–{rounds[i].EndRound}回合）冲突，请重新设置回合。";
             return "";
         }
     }
@@ -72,7 +97,7 @@ public partial class LineupEditorViewModel : ObservableObject
     [ObservableProperty]
     private bool _upgradeNotificationsEnabled;
 
-    /// <summary>9 个槽位，空槽位的 OperatorName 为空字符串。</summary>
+    /// <summary>15 个槽位，空槽位的 OperatorName 为空字符串。</summary>
     [ObservableProperty]
     private ObservableCollection<LineupSlot> _slots = [];
 
@@ -85,6 +110,7 @@ public partial class LineupEditorViewModel : ObservableObject
 
     [ObservableProperty]
     private int _filledSlotCount;
+    private readonly AutoRouteArchive? _autoRoute;
 
     public LineupEditorViewModel(
         Lineup? source,
@@ -92,6 +118,7 @@ public partial class LineupEditorViewModel : ObservableObject
         IEnumerable<Equipment> equipment,
         CovenantCalculator calculator)
     {
+        _autoRoute = source?.AutoRoute;
         _calculator = calculator;
         AllOperators = [.. operators];
         AllEquipment = [.. equipment];
@@ -112,7 +139,7 @@ public partial class LineupEditorViewModel : ObservableObject
                 LineupPhase.挂件 => source.SupportSlots,
                 _ => throw new ArgumentOutOfRangeException(nameof(phase)),
             };
-            // 暴躁铁皮 takes one of the 9 places; it is kept last and shown on its own card.
+            // 暴躁铁皮 takes one of the 15 places; it is kept last and shown on its own card.
             var list = sourceSlots.ToList();
             var mech = list.FirstOrDefault(IsMech);
             var slots = new ObservableCollection<LineupSlot>(list.Where(s => !IsMech(s)).Select(CloneSlot));
@@ -121,10 +148,50 @@ public partial class LineupEditorViewModel : ObservableObject
             if (mech is not null) slots.Add(CloneSlot(mech));
             _phaseSlots.Add(phase, slots);
         }
+        if (source?.SklandGuide is { } guide)
+        {
+            _guide = JsonSerializer.Deserialize<SklandGuideContent>(JsonSerializer.Serialize(guide))!;
+            _stages = _guide.Stages;
+        }
+        else
+        {
+            _localStageEdits = _initialLocalStageEdits = source?.EditorStages is not null;
+            _stages = source?.EditorStages is { } definitions
+                ? JsonSerializer.Deserialize<List<SklandGuideStage>>(JsonSerializer.Serialize(definitions))!
+                : Enum.GetValues<LineupPhase>().Select(p => new SklandGuideStage { Id = LegacyStageId(p),
+                    Name = p == LineupPhase.后期 ? "成型阵容" : p.ToString(), IsFinal = p == LineupPhase.后期 }).ToList();
+        }
+        var finalStage = _stages.Single(s => s.IsFinal);
+        _stages.Remove(finalStage);
+        _stages.Insert(0, finalStage);
+        foreach (var (stage, index) in _stages.Select((stage, index) => (stage, index)))
+        {
+            // Old imported lineups keep their final identity while adopting the current display name.
+            if (stage.IsFinal && stage.Name == "大成") stage.Name = "成型阵容";
+            var key = StagePhase(stage, index);
+            _guidePhases.Add(key, index);
+            if (_guide is not null || (int)key >= 10)
+            {
+                var slots = stage.Slots.Select(CloneSlot).ToList();
+                while (slots.Count < MaxSlots) slots.Add(new LineupSlot());
+                _phaseSlots[key] = new ObservableCollection<LineupSlot>(slots);
+            }
+            else if (stage.Slots.Any(s => s.IsReserve))
+            {
+                // Canonical slots may have been repaired outside the editor; only restore the saved reserves.
+                var slots = _phaseSlots[key].Where(s => s.OperatorName.Length > 0).ToList();
+                foreach (var reserve in stage.Slots.Where(s => s.IsReserve && !slots.Any(current => current.OperatorName == s.OperatorName)))
+                    slots.Add(CloneSlot(reserve));
+                while (slots.Count < MaxSlots) slots.Add(new LineupSlot());
+                _phaseSlots[key] = new ObservableCollection<LineupSlot>(slots);
+            }
+        }
+        _initialStages = JsonSerializer.Deserialize<List<SklandGuideStage>>(JsonSerializer.Serialize(_stages))!;
+        _initialGuide = _guide is null ? null : JsonSerializer.Deserialize<SklandGuideContent>(JsonSerializer.Serialize(_guide))!;
         _initialName = Name;
         StrategySlots = new ObservableCollection<LineupStrategySlot>(
             (source?.Strategies ?? []).Select(s => new LineupStrategySlot { StrategyId = s.StrategyId, Tags = [.. s.Tags] }));
-        while (StrategySlots.Count < MaxSlots)
+        while (StrategySlots.Count < MaxStrategySlots)
             StrategySlots.Add(new LineupStrategySlot());
         SyncMechSlots();
         _initialStrategies = StrategySlots.Select(s => new LineupStrategySlot { StrategyId = s.StrategyId, Tags = [.. s.Tags] }).ToList();
@@ -209,7 +276,7 @@ public partial class LineupEditorViewModel : ObservableObject
     public int FilledCount(LineupPhase phase) => _phaseSlots[phase].Count(s => s.OperatorName.Length > 0);
 
     /// <summary>
-    /// With the 暴躁铁皮 strategy every phase gets the mech in one of its 9 places (an empty place makes room);
+    /// With the 暴躁铁皮 strategy every phase gets the mech in one of its 15 places (an empty place makes room);
     /// without the strategy an unused mech gives its place back.
     /// </summary>
     private void SyncMechSlots()
@@ -255,6 +322,7 @@ public partial class LineupEditorViewModel : ObservableObject
                     ? "必须在策略中添加Pith的“优等生”策略"
                     : "必须在策略中添加森蚺的“暴躁铁皮”策略");
             var slot = Slots[slotIndex];
+            if (slot.OperatorName != operatorName) slot.GuideLoadout = null;
             slot.OperatorName = operatorName;
             // 触发 ItemsControl 刷新（LineupSlot 是 POCO，集合变更通知更可靠）
             Slots[slotIndex] = CloneSlot(slot);
@@ -324,11 +392,11 @@ public partial class LineupEditorViewModel : ObservableObject
     /// <summary>Replaces the strategies, preserving their tags and keeping 9 places.</summary>
     public void SetStrategies(IEnumerable<LineupStrategySlot> picked)
     {
-        var selected = picked.Where(s => s.StrategyId.Length > 0).Take(MaxSlots)
+        var selected = picked.Where(s => s.StrategyId.Length > 0).Take(MaxStrategySlots)
             .Select(s => new LineupStrategySlot { StrategyId = s.StrategyId, Tags = [.. s.Tags] }).ToList();
         StrategySlots.Clear();
         foreach (var slot in selected) StrategySlots.Add(slot);
-        while (StrategySlots.Count < MaxSlots) StrategySlots.Add(new LineupStrategySlot());
+        while (StrategySlots.Count < MaxStrategySlots) StrategySlots.Add(new LineupStrategySlot());
         SyncMechSlots();
         OnPropertyChanged(nameof(HasMechStrategy));
         Recalculate();
@@ -423,6 +491,12 @@ public partial class LineupEditorViewModel : ObservableObject
 
     public void Reset()
     {
+        _guide = _initialGuide is null ? null : JsonSerializer.Deserialize<SklandGuideContent>(JsonSerializer.Serialize(_initialGuide));
+        _stages = _guide?.Stages ?? JsonSerializer.Deserialize<List<SklandGuideStage>>(JsonSerializer.Serialize(_initialStages))!;
+        _localStageEdits = _initialLocalStageEdits;
+        _guidePhases.Clear();
+        foreach (var (stage, index) in _stages.Select((stage, index) => (stage, index))) _guidePhases.Add(StagePhase(stage, index), index);
+        _phaseSlots.Clear();
         Name = _initialName;
         StrategySlots.Clear();
         foreach (var slot in _initialStrategies)
@@ -497,7 +571,7 @@ public partial class LineupEditorViewModel : ObservableObject
 
     public void Recalculate()
     {
-        var allStats = _calculator.Compute(new Lineup { Slots = [.. Slots] });
+        var allStats = _calculator.Compute(new Lineup { Slots = Slots.ToList() });
         var visible = allStats.Where(s => s.Count > 0)
                               .OrderByDescending(s => s.Activated)
                               .ThenBy(s => s.BondType == "SEASON" ? 0 : 1)
@@ -515,6 +589,9 @@ public partial class LineupEditorViewModel : ObservableObject
         Id = LineupId,
         SourceUrl = SourceUrl,
         SourceContentHash = SourceContentHash,
+        SklandGuide = ExportGuide(),
+        EditorStages = _guide is null && _localStageEdits ? ExportStages() : null,
+        AutoRoute = _autoRoute,
         Name = string.IsNullOrWhiteSpace(Name) ? "未命名阵容" : Name.Trim(),
         Slots = ExportPhase(LineupPhase.后期),
         EarlySlots = ExportPhase(LineupPhase.前期),
@@ -532,9 +609,103 @@ public partial class LineupEditorViewModel : ObservableObject
     private List<LineupSlot> ExportPhase(LineupPhase phase) => [.. _phaseSlots[phase]
         .Where(s => !string.IsNullOrEmpty(s.OperatorName) && (!IsMech(s) || s.Equipments.Count > 0 || s.CandidateEquipments.Count > 0 || s.Tags.Count > 0)).Select(CloneSlot)];
 
+    public void SetGuideLoadout(int index, string skillId, string moduleId)
+    {
+        var slot = CloneSlot(Slots[index]);
+        slot.GuideLoadout!.SkillId = skillId;
+        slot.GuideLoadout.ModuleId = moduleId;
+        Slots[index] = slot;
+    }
+
+    private static string LegacyStageId(LineupPhase phase) => phase switch
+    {
+        LineupPhase.前期 => "early", LineupPhase.中期 => "mid", LineupPhase.后期 => "final", LineupPhase.挂件 => "support",
+        _ => throw new ArgumentOutOfRangeException(nameof(phase))
+    };
+
+    private static LineupPhase StagePhase(SklandGuideStage stage, int index) => stage.IsFinal ? LineupPhase.后期 : stage.Id switch
+    {
+        "early" => LineupPhase.前期, "mid" => LineupPhase.中期, "support" => LineupPhase.挂件, _ => (LineupPhase)(10 + index)
+    };
+
+    public void AddStage(string name, int? startRound, int? endRound)
+    {
+        var key = (LineupPhase)Math.Max(10, _phaseSlots.Keys.Max(k => (int)k) + 1);
+        var stage = new SklandGuideStage { Id = Guid.NewGuid().ToString("N"), Name = name, StartRound = startRound, EndRound = endRound };
+        _guidePhases.Add(key, _stages.Count);
+        _stages.Add(stage);
+        _phaseSlots[key] = new ObservableCollection<LineupSlot>(Enumerable.Range(0, MaxSlots).Select(_ => new LineupSlot()));
+        _localStageEdits = true;
+        SyncMechSlots();
+        SelectPhase(key);
+    }
+
+    public bool MoveStage(LineupPhase phase, int targetIndex)
+    {
+        if (phase == LineupPhase.后期) return false;
+        int sourceIndex = _guidePhases[phase];
+        targetIndex = Math.Clamp(targetIndex, 1, _stages.Count - 1);
+        if (sourceIndex == targetIndex) return false;
+        var phases = _guidePhases.ToDictionary(p => _stages[p.Value].Id, p => p.Key);
+        var stage = _stages[sourceIndex];
+        _stages.RemoveAt(sourceIndex);
+        _stages.Insert(targetIndex, stage);
+        for (int index = 0; index < _stages.Count; index++)
+            _guidePhases[phases[_stages[index].Id]] = index;
+        _localStageEdits = true;
+        OnPropertyChanged(nameof(PhaseLabels));
+        return true;
+    }
+
+    public void DuplicateStage(LineupPhase phase)
+    {
+        int index = _guidePhases[phase] + 1;
+        var stage = JsonSerializer.Deserialize<SklandGuideStage>(JsonSerializer.Serialize(_stages[index - 1]))!;
+        stage.Id = Guid.NewGuid().ToString("N");
+        stage.Name += " 副本";
+        stage.IsFinal = false;
+        var key = (LineupPhase)Math.Max(10, _phaseSlots.Keys.Max(k => (int)k) + 1);
+        _phaseSlots[key] = new ObservableCollection<LineupSlot>(_phaseSlots[phase].Select(CloneSlot));
+        stage.Slots = _phaseSlots[key].Where(s => s.OperatorName.Length > 0).ToList();
+        foreach (var existing in _guidePhases.Keys.ToList())
+            if (_guidePhases[existing] >= index) _guidePhases[existing]++;
+        _stages.Insert(index, stage);
+        _guidePhases.Add(key, index);
+        _localStageEdits = true;
+        SelectPhase(key);
+    }
+
+    public void UpdateStage(LineupPhase phase, string name, int? startRound, int? endRound)
+    {
+        var stage = _stages[_guidePhases[phase]];
+        stage.Name = name; stage.StartRound = startRound; stage.EndRound = endRound;
+        _localStageEdits = true;
+        Recalculate();
+    }
+
+    public void SetStageNotes(string text) { CurrentStage.OperationIdea = text; _localStageEdits = true; }
+
+    private List<SklandGuideStage> ExportStages()
+    {
+        var stages = JsonSerializer.Deserialize<List<SklandGuideStage>>(JsonSerializer.Serialize(_stages))!;
+        foreach (var (phase, index) in _guidePhases)
+            stages[index].Slots = _phaseSlots[phase].Where(s => s.OperatorName.Length > 0).Select(CloneSlot).ToList();
+        return stages;
+    }
+
+    private SklandGuideContent? ExportGuide()
+    {
+        if (_guide is null) return null;
+        var guide = JsonSerializer.Deserialize<SklandGuideContent>(JsonSerializer.Serialize(_guide))!;
+        guide.Stages = ExportStages();
+        return guide;
+    }
+
     private static LineupSlot CloneSlot(LineupSlot s) => new()
     {
         OperatorName = s.OperatorName,
+        GuideLoadout = s.GuideLoadout is { } loadout ? new SklandLoadout { CharId = loadout.CharId, SkillId = loadout.SkillId,
+            ModuleId = loadout.ModuleId, Skills = [.. loadout.Skills], Modules = [.. loadout.Modules] } : null,
         TransformedCovenant = s.TransformedCovenant,
         IsElite = s.IsElite,
         Equipments   = [.. s.Equipments],

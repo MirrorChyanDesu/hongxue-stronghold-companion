@@ -35,6 +35,7 @@ public partial class SidePanelWindow : Window
 
     public event Action? ManualScanRequested;
     public event Action? GameConnectionRequested;
+    public event Action? TopmostPreferenceChanged;
     public event Action<string, bool>? BanToggleRequested;
 
     private void OnProjectAddressNavigate(object sender, RequestNavigateEventArgs e)
@@ -58,6 +59,9 @@ public partial class SidePanelWindow : Window
     private readonly SettingsManager _settingsManager;
     private SidePanelPositionSettings _positionSettings;
     private RECT? _lastGameRect;
+    private IntPtr _lastTopmostForeground;
+    private MainWindowCloseBehavior _closeBehavior;
+    private bool _closeRequestPending;
     public GameShopTheme GameTheme { get; private set; }
     public event Action<GameShopTheme>? GameThemeChanged;
     public event Action<bool>? AutomaticGameThemeChanged;
@@ -104,7 +108,8 @@ public partial class SidePanelWindow : Window
         SidePanelPositionSettings positionSettings,
         LineupPlanner? lineupPlanner = null,
         IReadOnlyList<CovenantInfo>? covenants = null,
-        SidebarAppearance? appearance = null)
+        SidebarAppearance? appearance = null,
+        MainWindowCloseBehavior closeBehavior = MainWindowCloseBehavior.Ask)
     {
         _appearance = appearance ?? new SidebarAppearance();
         OperatorBrowseVm = operatorVm;
@@ -125,6 +130,11 @@ public partial class SidePanelWindow : Window
         GameTheme = gameTheme;
 
         InitializeComponent();
+        _closeBehavior = closeBehavior;
+        CloseBehaviorSelector.SelectedIndex = (int)closeBehavior;
+        UpdateCloseButtonTooltip();
+        CloseBehaviorSelector.SelectionChanged += OnCloseBehaviorChanged;
+        InitGameStartSettings(new());
         _preferredWidthDip = Width;
         if (positionSettings.Placement is { } placement)
         {
@@ -155,12 +165,15 @@ public partial class SidePanelWindow : Window
         UpdateStatusChip();
         MultiLineupTrackingToggle.IsChecked = trackingVm.TrackMultipleLineups;
         FreeSidePanelMovementToggle.IsChecked = positionSettings.FreeMovement;
+        ForceTopmostToggle.IsChecked = positionSettings.ForceTopmost;
         UiThemeSelector.SelectionChanged += OnUiThemeChanged;
         GameThemeSelector.SelectionChanged += OnGameThemeChanged;
         MultiLineupTrackingToggle.Checked += OnMultipleLineupsChanged;
         MultiLineupTrackingToggle.Unchecked += OnMultipleLineupsChanged;
         FreeSidePanelMovementToggle.Checked += OnFreeSidePanelMovementChanged;
         FreeSidePanelMovementToggle.Unchecked += OnFreeSidePanelMovementChanged;
+        ForceTopmostToggle.Checked += OnForceTopmostChanged;
+        ForceTopmostToggle.Unchecked += OnForceTopmostChanged;
 
         _toastHideTimer = new DispatcherTimer
         {
@@ -262,13 +275,20 @@ public partial class SidePanelWindow : Window
         };
         UpdateBanSummary();
 
+        trackingVm.StageStateChanged += () =>
+        {
+            OperatorView.RefreshTrackingStates();
+            EquipmentView.RefreshTrackingStates();
+        };
         trackingVm.TrackedOperators.CollectionChanged += (_, _) =>
         {
+            if (trackingVm.StageTargetsUpdating) return;
             OperatorView.RefreshTrackingStates();
             EquipmentView.RefreshTrackingStates();
         };
         trackingVm.TrackedEquipment.CollectionChanged += (_, _) =>
         {
+            if (trackingVm.StageTargetsUpdating) return;
             OperatorView.RefreshTrackingStates();
             EquipmentView.RefreshTrackingStates();
         };
@@ -285,6 +305,12 @@ public partial class SidePanelWindow : Window
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
+        if (msg == 0x0112 && (wParam.ToInt64() & 0xFFF0) == 0xF060) // WM_SYSCOMMAND, SC_CLOSE.
+        {
+            handled = true;
+            Dispatcher.BeginInvoke(new Action(async () => await RequestUserCloseAsync()));
+            return IntPtr.Zero;
+        }
         if (msg == User32.WM_ENTERSIZEMOVE)
         {
             _isUserMovingOrSizing = true;
@@ -604,10 +630,17 @@ public partial class SidePanelWindow : Window
             ownedFocus = User32.GetWindow(ownedFocus, 4); // GW_OWNER includes editor and selection dialogs.
         var topmost = game != IntPtr.Zero && User32.IsWindow(game) && !User32.IsIconic(game)
             && !IsAssistantHidden && WindowState == WindowState.Normal
-            && (foreground == game || Topmost && ownedFocus == hwnd);
-        if (Topmost == topmost && ((User32.GetWindowLong(hwnd, User32.GWL_EXSTYLE) & 8) != 0) == topmost) return;
+            && (_positionSettings.ForceTopmost || foreground == game || ownedFocus == hwnd);
+        // A topmost game can move above us when focus changes; raise without activating, once per transition.
+        var refreshLayer = topmost && _positionSettings.ForceTopmost && foreground != _lastTopmostForeground;
+        _lastTopmostForeground = foreground;
+        if (!refreshLayer && Topmost == topmost && ((User32.GetWindowLong(hwnd, User32.GWL_EXSTYLE) & 8) != 0) == topmost) return;
         Topmost = topmost;
-        User32.SetWindowLayer(hwnd, topmost);
+        var insertAfter = topmost ? new IntPtr(-1) : new IntPtr(-2);
+        if (!topmost && ownedFocus != hwnd && foreground != IntPtr.Zero && User32.IsWindow(foreground)
+            && (User32.GetWindowLong(foreground, User32.GWL_EXSTYLE) & 8) == 0)
+            insertAfter = foreground;
+        User32.SetWindowLayer(hwnd, insertAfter);
     }
 
     public void UpdatePosition(RECT gameRect, bool isFullscreen)
@@ -1044,6 +1077,13 @@ public partial class SidePanelWindow : Window
         await SavePreferenceAsync(() => _settingsManager.SaveSidePanelPositionAsync(_positionSettings), FreeSidePanelMovementToggle);
     }
 
+    private async void OnForceTopmostChanged(object sender, RoutedEventArgs e)
+    {
+        _positionSettings = _positionSettings with { ForceTopmost = ForceTopmostToggle.IsChecked == true };
+        TopmostPreferenceChanged?.Invoke();
+        await SavePreferenceAsync(() => _settingsManager.SaveSidePanelPositionAsync(_positionSettings), ForceTopmostToggle);
+    }
+
     private async void OnResetSidePanelPosition(object sender, RoutedEventArgs e)
     {
         if (_lastGameRect is not { } game)
@@ -1159,12 +1199,51 @@ public partial class SidePanelWindow : Window
         }
     }
 
-    private void OnClose(object sender, RoutedEventArgs e)
-    {
-        if (!ConfirmDialog.Ask(this, "退出确认", "确定要关闭鸿雪·卫戍助手吗？\n关闭后识别、悬浮提示与快捷键都会停止。", "关闭"))
-            return;
+    private async void OnClose(object sender, RoutedEventArgs e) => await RequestUserCloseAsync();
 
-        Application.Current.Shutdown();
+    private void UpdateCloseButtonTooltip()
+    {
+        CloseAssistantButton.ToolTip = _closeBehavior switch
+        {
+            MainWindowCloseBehavior.MinimizeToTray => "收起到托盘（后台识别继续）",
+            MainWindowCloseBehavior.Exit => "退出程序（停止后台识别）",
+            _ => "关闭助手（每次询问）"
+        };
+    }
+
+    private async Task SetCloseBehaviorAsync(MainWindowCloseBehavior behavior)
+    {
+        _closeBehavior = behavior;
+        CloseBehaviorSelector.SelectedIndex = (int)behavior;
+        UpdateCloseButtonTooltip();
+        await SavePreferenceAsync(() => _settingsManager.SaveMainWindowCloseBehaviorAsync(behavior), CloseBehaviorSelector);
+    }
+
+    private async void OnCloseBehaviorChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var behavior = (MainWindowCloseBehavior)CloseBehaviorSelector.SelectedIndex;
+        if (behavior == _closeBehavior) return;
+        await SetCloseBehaviorAsync(behavior);
+    }
+
+    internal async Task RequestUserCloseAsync()
+    {
+        if (_closeRequestPending) return;
+        _closeRequestPending = true;
+        try
+        {
+            var behavior = _closeBehavior;
+            if (behavior == MainWindowCloseBehavior.Ask)
+            {
+                var dialog = new CloseBehaviorDialog { Owner = this };
+                if (dialog.ShowDialog() != true) return;
+                behavior = dialog.Choice!.Value;
+                if (dialog.Remember) await SetCloseBehaviorAsync(behavior);
+            }
+            if (behavior == MainWindowCloseBehavior.Exit) Application.Current.Shutdown();
+            else if (!IsAssistantHidden) ToggleAssistantVisibilityRequested?.Invoke();
+        }
+        finally { _closeRequestPending = false; }
     }
 
     // ── Lineup feature wiring ──────────────────────────────────────────────
@@ -1183,6 +1262,11 @@ public partial class SidePanelWindow : Window
         };
         LineupView.NewLineupRequested += async () => await OpenEditorAsync(null, null);
         LineupView.EditLineupRequested += async lineup => await OpenEditorAsync(lineup, null);
+        LineupView.OpenAutoRouteRequested += lineup =>
+        {
+            if (PlannerVm.OpenSavedAutoRoute(lineup) is { } error) { ShowToast(error); return; }
+            ShowLineupsSegment(planner: true);
+        };
         LineupView.DeleteLineupRequested += async lineup =>
         {
             if (!ConfirmDialog.Ask(this, "删除阵容", $"确定删除阵容“{lineup.Name}”？此操作不可撤销。", "删除", danger: true))
@@ -1339,7 +1423,7 @@ public partial class SidePanelWindow : Window
         PlannerVm = new LineupPlannerViewModel(_lineupPlanner, _allOperators, BanVm, LineupVm.Calculator.EquipmentRules)
         {
             CurrentTerminalLevel = TrackingVm.TerminalLevel,
-            TrackedOperatorsProvider = () => TrackingVm.TrackedOperators.Select(e => e.Name).ToList(),
+            TrackedOperatorsProvider = () => TrackingVm.TrackedOperators.Where(e => e.IsStageActive).Select(e => e.Name).ToList(),
             RunOnUiThread = action =>
             {
                 if (Dispatcher.CheckAccess()) action();
@@ -1350,7 +1434,13 @@ public partial class SidePanelWindow : Window
         {
             if (e.PropertyName == nameof(TrackingViewModel.TerminalLevel))
                 PlannerVm.CurrentTerminalLevel = TrackingVm.TerminalLevel;
+            if (e.PropertyName is nameof(TrackingViewModel.TerminalLevel) or nameof(TrackingViewModel.IsTerminalLevelRestored)
+                or nameof(TrackingViewModel.ManualTerminalLevel) or nameof(TrackingViewModel.Economy) or nameof(TrackingViewModel.OperatorProgress))
+                PlannerVm.SetAutoRunState(new(TrackingVm.IsTerminalLevelRestored && TrackingVm.ManualTerminalLevel is null
+                    ? 0 : TrackingVm.TerminalLevel, TrackingVm.Economy, TrackingVm.OwnedOperatorNames));
         };
+        PlannerVm.SetAutoRunState(new(TrackingVm.IsTerminalLevelRestored && TrackingVm.ManualTerminalLevel is null
+            ? 0 : TrackingVm.TerminalLevel, TrackingVm.Economy, TrackingVm.OwnedOperatorNames));
         PlannerVm.SaveRequested += async lineup =>
         {
             try
@@ -1382,7 +1472,7 @@ public partial class SidePanelWindow : Window
             try
             {
                 var added = TrackingVm.TrackRoute(route, LineupVm.Calculator.EquipmentRules);
-                ShowToast($"已追踪道中路线：新增 {added.Final} 名大成干员 / {added.Transition} 名过渡干员");
+                ShowToast($"已追踪道中路线：新增 {added.Final} 名成型阵容干员 / {added.Transition} 名过渡干员");
             }
             catch (Exception ex)
             {
@@ -1399,6 +1489,7 @@ public partial class SidePanelWindow : Window
                     UpdateLineupRunInfo();
                 });
         };
+        PlannerVm.ShowAutoPageCommand.Execute(null);
         PlannerView.DataContext = PlannerVm;
     }
 
@@ -1447,6 +1538,7 @@ public partial class SidePanelWindow : Window
         }
         LineupView.RefreshAllBadges();
         ShowToast(edited ? "已保存阵容" : "已创建阵容");
+        PlannerVm.NotifySavedAutoRouteSourceChanged(lineup);
         if (!edited || !TrackingVm.IsLineupTracked(lineup.Id)) return;
         var dialog = new ConfirmDialog("更新追踪阵容", $"阵容“{lineup.Name}”已保存。是否将修改应用到追踪栏？其他阵容、手动追踪和获取状态会保留。",
             "应用到追踪栏", cancelText: "仅保存") { Owner = this };

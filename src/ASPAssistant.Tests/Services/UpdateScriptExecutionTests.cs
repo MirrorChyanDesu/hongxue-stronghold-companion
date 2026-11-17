@@ -49,7 +49,7 @@ public class UpdateScriptExecutionTests(ITestOutputHelper output) : IAsyncLifeti
         await File.WriteAllTextAsync(script, UpdateService.BuildUpdateScript(
             int.MaxValue, Path.Combine(root, "source"), Path.Combine(root, "app"),
             Path.Combine(root, "app", "ASPAssistant.App.exe"), Path.Combine(root, "staging"),
-            Path.Combine(root, "backup"), Path.Combine(root, "update.log")), new UTF8Encoding(true));
+            Path.Combine(root, "backup"), Path.Combine(root, "update.log"), "ASPAssistant.App.exe"), new UTF8Encoding(true));
         var parser = Path.Combine(root, "parse.ps1");
         await File.WriteAllTextAsync(parser, """
             $tokens = $null
@@ -76,6 +76,63 @@ public class UpdateScriptExecutionTests(ITestOutputHelper output) : IAsyncLifeti
         await AssertStartedAsync(app, "new");
         (await File.ReadAllTextAsync(Path.Combine(root, "update.log"))).Should().Contain("activated new version");
         Directory.Exists(Path.Combine(root, "backup")).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("HongxueCompanion.exe", "ready")]
+    [InlineData("app/HongxueCompanion.exe", "ready")]
+    [InlineData("app/HongxueCompanion.exe", "failed")]
+    [InlineData("app/HongxueCompanion.exe", "exit")]
+    [InlineData("app/HongxueCompanion.exe", "no-result")]
+    public async Task Transition_UsesDeclaredMainExecutableAndRollsBackOldName(string executable, string mode)
+    {
+        var (app, source) = await PrepareFilesAsync(_root, "中文 空格 & [目录] O'Neil $迁移");
+        var target = Path.Combine(source, executable);
+        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+        File.Move(Path.Combine(source, "ASPAssistant.App.exe"), target);
+        var runtime = Path.GetDirectoryName(target)!;
+        if (runtime != source) File.Move(Path.Combine(source, "version.txt"), Path.Combine(runtime, "version.txt"));
+        await File.WriteAllTextAsync(Path.Combine(runtime, "startup-mode.txt"), mode);
+        await File.WriteAllTextAsync(Path.Combine(source, "update-layout.json"),
+            JsonSerializer.Serialize(new { formatVersion = 1, executable }));
+        // The updater must launch the declared main process, never an unrelated root launcher.
+        await File.WriteAllTextAsync(Path.Combine(source, "鸿雪·卫戍助手.exe"), "not an executable");
+        var profile = Directory.CreateDirectory(Path.Combine(_root, "profile")).FullName;
+        Directory.CreateDirectory(Path.Combine(profile, "lineups", "order"));
+        await File.WriteAllTextAsync(Path.Combine(profile, "tracking.json"), "[]");
+        await File.WriteAllTextAsync(Path.Combine(profile, "lineups", "order", "lineups.json"), "[\"saved\"]");
+        var originalSettings = Environment.GetEnvironmentVariable("ASPASSISTANT_SETTINGS_DIR");
+        var originalProbe = Environment.GetEnvironmentVariable("HONGXUE_TEST_READ_SETTINGS");
+        try
+        {
+            Environment.SetEnvironmentVariable("ASPASSISTANT_SETTINGS_DIR", profile);
+            Environment.SetEnvironmentVariable("HONGXUE_TEST_READ_SETTINGS", "1");
+            var result = await RunUpdateAsync(_root, app, source, shortWait: mode == "no-result");
+            result.ExitCode.Should().Be(mode == "ready" ? 0 : 1, result.Output);
+            if (mode is "ready" or "no-result")
+            {
+                var installedRuntime = Path.GetDirectoryName(Path.Combine(app, executable))!;
+                await AssertStartedAsync(installedRuntime, "new");
+                (await File.ReadAllTextAsync(Path.Combine(installedRuntime, "started-settings.log")))
+                    .Should().Be(profile + "|[]|[\"saved\"]");
+                File.Exists(Path.Combine(app, "ASPAssistant.App.exe")).Should().BeFalse();
+                Directory.Exists(Path.Combine(_root, "backup")).Should().Be(mode == "no-result");
+            }
+            else
+            {
+                await AssertStartedAsync(app, "old");
+                File.Exists(Path.Combine(app, "ASPAssistant.App.exe")).Should().BeTrue();
+                File.Exists(Path.Combine(app, executable)).Should().BeFalse();
+                File.Exists(Path.Combine(app, "update-layout.json")).Should().BeFalse();
+            }
+            (await File.ReadAllTextAsync(Path.Combine(profile, "tracking.json"))).Should().Be("[]");
+            (await File.ReadAllTextAsync(Path.Combine(profile, "lineups", "order", "lineups.json"))).Should().Be("[\"saved\"]");
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("ASPASSISTANT_SETTINGS_DIR", originalSettings);
+            Environment.SetEnvironmentVariable("HONGXUE_TEST_READ_SETTINGS", originalProbe);
+        }
     }
 
     [Fact]
@@ -312,18 +369,19 @@ public class UpdateScriptExecutionTests(ITestOutputHelper output) : IAsyncLifeti
     private static async Task<(int ExitCode, string Output)> RunUpdateAsync(
         string root, string app, string source, int pid = int.MaxValue, bool shortWait = false, string prefix = "")
     {
+        var runtime = Path.GetDirectoryName(Path.Combine(app, UpdateService.ResolvePackageExecutable(source)))!;
         var script = UpdateService.BuildUpdateScript(pid, source, app, Path.Combine(app, "ASPAssistant.App.exe"),
-            Path.Combine(root, "staging"), Path.Combine(root, "backup"), Path.Combine(root, "update.log"));
+            Path.Combine(root, "staging"), Path.Combine(root, "backup"), Path.Combine(root, "update.log"), UpdateService.ResolvePackageExecutable(source));
         if (shortWait) script = script.Replace("$timeout = 300", "$timeout = 1")
             .Replace("$startupTimeout = 60", "$startupTimeout = 1");
         var path = Path.Combine(root, "update.ps1");
         script = script.Replace("Write-Log \"update started (pid=$appPid)\"", prefix + "\nWrite-Log \"update started (pid=$appPid)\"");
         await File.WriteAllTextAsync(path, script, new UTF8Encoding(true));
         var result = await RunPowerShellAsync(path, app);
-        if (File.Exists(Path.Combine(app, "new.running")))
+        if (File.Exists(Path.Combine(runtime, "new.running")))
         {
-            await File.WriteAllTextAsync(Path.Combine(app, "release.new"), "release");
-            await WaitForFileAsync(Path.Combine(app, "new.exited"));
+            await File.WriteAllTextAsync(Path.Combine(runtime, "release.new"), "release");
+            await WaitForFileAsync(Path.Combine(runtime, "new.exited"));
         }
         return result;
     }

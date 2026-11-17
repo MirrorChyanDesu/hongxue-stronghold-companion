@@ -74,7 +74,10 @@ internal static class PageScaleDialogViewTests
             window.Opacity = 0;
             window.ShowActivated = window.ShowInTaskbar = false;
             windows.Add(window);
+            var rendered = false;
+            window.ContentRendered += (_, _) => rendered = true;
             window.Show();
+            Wait(() => rendered);
             Pump();
             WindowUiScale.ScaleOf(window).Should().BeApproximately(expected, 0.0001, name);
             var root = (Border)window.Content;
@@ -88,6 +91,15 @@ internal static class PageScaleDialogViewTests
             bounds.Left.Should().BeGreaterThanOrEqualTo(work.Left);
             bounds.Right.Should().BeLessThanOrEqualTo(work.Right);
             bounds.Bottom.Should().BeLessThanOrEqualTo(work.Bottom);
+            if (window.WindowStartupLocation == WindowStartupLocation.CenterOwner && window.Owner is { } owner)
+            {
+                var ownerBounds = User32.ReadWindowRect(new WindowInteropHelper(owner).Handle);
+                var ownerWork = User32.GetMonitorGeometry(ownerBounds.Left + ownerBounds.Width / 2, ownerBounds.Top + ownerBounds.Height / 2).WorkArea;
+                var left = Math.Clamp(ownerBounds.Left + (ownerBounds.Width - bounds.Width) / 2, ownerWork.Left, ownerWork.Right - bounds.Width);
+                var top = Math.Clamp(ownerBounds.Top + (ownerBounds.Height - bounds.Height) / 2, ownerWork.Top, ownerWork.Bottom - bounds.Height);
+                ((double)bounds.Left).Should().BeApproximately(left, 1, name);
+                ((double)bounds.Top).Should().BeApproximately(top, 1, name);
+            }
             Save(root, $"{name}-{theme}-{night}");
         }
         try
@@ -167,6 +179,24 @@ internal static class PageScaleDialogViewTests
             share.Close();
             var confirm = new ConfirmDialog("确认操作", "正文、说明和按钮应跟随阵容编辑比例", danger: true) { Owner = editor };
             Show(confirm, "confirm", 1.2);
+            var confirmBackground = ((SolidColorBrush)confirm.Background).Color;
+            var message = (TextBlock)confirm.FindName("MessageText");
+            evidence["confirm-body"] = Contrast(((SolidColorBrush)message.Foreground).Color, confirmBackground);
+            evidence["confirm-body"].Should().BeGreaterThanOrEqualTo(4.5);
+            var title = (TextBlock)confirm.FindName("TitleText");
+            var titleBar = (Border)((DockPanel)title.Parent).Parent;
+            evidence["confirm-title"] = Contrast(((SolidColorBrush)title.Foreground).Color,
+                Composite(((SolidColorBrush)titleBar.Background).Color, confirmBackground));
+            evidence["confirm-title"].Should().BeGreaterThanOrEqualTo(4.5);
+            foreach (var name in new[] { "CancelButton", "OkButton" })
+            {
+                var button = (Button)confirm.FindName(name);
+                var footer = (Border)((StackPanel)button.Parent).Parent;
+                var background = Composite(((SolidColorBrush)button.Background).Color,
+                    Composite(((SolidColorBrush)footer.Background).Color, confirmBackground));
+                evidence["confirm-" + name] = Contrast(((SolidColorBrush)button.Foreground).Color, background);
+                evidence["confirm-" + name].Should().BeGreaterThanOrEqualTo(4.5);
+            }
             confirm.Close();
             var prompt = new InputDialog("输入", "请输入名称") { Owner = editor };
             Show(prompt, "input", 1.2);
@@ -290,8 +320,16 @@ internal static class PageScaleDialogViewTests
     private static void Save(FrameworkElement element, string name)
     {
         element.UpdateLayout();
+        var raw = new RenderTargetBitmap((int)Math.Ceiling(element.ActualWidth), (int)Math.Ceiling(element.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+        raw.Render(element);
+        var visual = new DrawingVisual();
+        using (var drawing = visual.RenderOpen())
+        {
+            drawing.DrawRectangle(Window.GetWindow(element).Background, null, new Rect(element.RenderSize));
+            drawing.DrawImage(raw, new Rect(element.RenderSize));
+        }
         var bitmap = new RenderTargetBitmap((int)Math.Ceiling(element.ActualWidth), (int)Math.Ceiling(element.ActualHeight), 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(element);
+        bitmap.Render(visual);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         var output = Path.Combine(TestOutput.Directory, "page-dialog-scales");

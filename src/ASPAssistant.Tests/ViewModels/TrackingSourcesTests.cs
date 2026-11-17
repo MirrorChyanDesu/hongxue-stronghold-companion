@@ -57,7 +57,7 @@ public class TrackingSourcesTests
         var vm = new TrackingViewModel { TrackMultipleLineups = true };
         vm.TrackLineup(new Lineup { Id = "a", Slots = [new() { OperatorName = "手动保留" }, new() { OperatorName = "路线保留" }] });
         vm.AddTracking("手动保留", TrackingType.Operator);
-        vm.TrackRoute(new PlannedRoute { Stages = [new RouteStage(new("大成", 6, 6, 0, 1),
+        vm.TrackRoute(new PlannedRoute { Stages = [new RouteStage(new("成型阵容", 6, 6, 0, 1),
             [new RouteOperator("路线保留", 1, "", RouteOperatorRole.Final)], []) { IsFinal = true }] });
         vm.ApplyTrackedLineup(new Lineup { Id = "a", Slots = [new() { OperatorName = "新目标" }] });
         vm.TrackedOperators.Select(e => e.Name).Should().BeEquivalentTo("手动保留", "路线保留", "新目标");

@@ -148,14 +148,40 @@
                         </Grid>
                         </Border>
                     </DockPanel>
-                    <WrapPanel Margin="0,0,5,6">
+                    <DockPanel Margin="0,0,5,6">
+                        <ToggleButton x:Name="PoolAllStagesToggle" DockPanel.Dock="Right" Content="全程全部" FontSize="10.5" Margin="4,0,0,4"
+                                      Style="{StaticResource VariantToggleButton}" Background="{DynamicResource NeutralTintBrush}" VerticalAlignment="Top"
+                                      Checked="OnPoolAllStagesChanged" Unchecked="OnPoolAllStagesChanged" ToolTip="查看全部阶段的干员；不改变当前阶段和本局获取状态" />
+                        <WrapPanel>
                         <ListBox x:Name="PoolFilterList" Style="{StaticResource SegmentedListBox}" SelectionChanged="OnPoolFilterChanged" SelectedIndex="0" Margin="0,0,6,4">
                             <ListBoxItem Content="全部" /><ListBoxItem Content="已获取" />
                         </ListBox>
-                        <Button Content="本阶段已获取" Margin="0,0,5,4" Style="{StaticResource SmallActionButton}" Click="OnOwnCurrentStage" ToolTip="标记大成与未过期过渡干员已获取，不会自动标记精锐" />
+                        <Button Content="本阶段已获取" Margin="0,0,5,4" Style="{StaticResource SmallActionButton}" Click="OnOwnCurrentStage" ToolTip="仅标记当前阶段干员已获取，不会自动标记精锐" />
                         <Button Content="＋ 添加" Margin="0,0,0,4" Tag="accent" Style="{StaticResource SmallActionButton}" Click="OnAddOther" />
-                    </WrapPanel>
+                        </WrapPanel>
+                    </DockPanel>
                     <TextBlock x:Name="PoolHeaderMeta" FontSize="10.5" TextWrapping="Wrap" Margin="2,0,5,7" Foreground="{DynamicResource TextSecondaryBrush}" />
+                    <Grid x:Name="PoolStageRow" Margin="2,0,7,7" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <Button x:Name="PoolTrackedToggle" AutomationProperties.Name="展开或收起干员列表" Width="22" Height="26" Margin="0,0,4,0" Style="{StaticResource SmallActionButton}"
+                                Background="Transparent" BorderThickness="0" Padding="3" Click="OnTogglePoolTracked" ToolTip="收起干员列表">
+                            <Path x:Name="PoolFoldIcon" Data="M3,6 L8,11 L13,6" Width="11" Height="7" Stretch="Fill" Stroke="{DynamicResource TextSecondaryBrush}"
+                                  StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                        </Button>
+                        <Grid Grid.Column="1">
+                            <TextBlock x:Name="PoolStageTitle" Text="成型阵容干员" FontSize="11.5" FontWeight="Bold" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <ComboBox x:Name="PoolStageSelector" Height="30" MinWidth="0" DisplayMemberPath="Label" Visibility="Collapsed"
+                                      SelectionChanged="OnPoolStageChanged" ToolTip="选择当前追踪阶段，与购买清单同步" />
+                        </Grid>
+                        <TextBlock x:Name="PoolTrackedCount" Grid.Column="2" FontSize="10" FontWeight="Bold" Margin="5,0" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource AccentBrush}" ToolTip="当前查看范围的已获取人数 / 总人数" />
+                        <StackPanel x:Name="PoolAutomaticPanel" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
+                            <TextBlock Text="自动" FontSize="11" Margin="0,0,4,0" VerticalAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <CheckBox x:Name="PoolAutomaticToggle" Style="{StaticResource SwitchToggle}" Checked="OnPoolAutomaticChanged" Unchecked="OnPoolAutomaticChanged"
+                                      ToolTip="按已识别回合自动切换；手动选择阶段会关闭自动" />
+                        </StackPanel>
+                    </Grid>
+                    <StackPanel x:Name="PoolTrackedBody" Margin="0,0,5,0" />
                     <StackPanel x:Name="PoolGroups" Margin="0,0,5,0" />
                 </StackPanel>
 

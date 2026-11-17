@@ -20,6 +20,7 @@ public partial class LineupListView : UserControl
     public event Action? NewLineupRequested;
     public event Action? ImportLineupRequested;
     public event Action<Lineup>? EditLineupRequested;
+    public event Action<Lineup>? OpenAutoRouteRequested;
     public event Action<Lineup>? ShareLineupRequested;
     public event Action<Lineup>? TrackLineupRequested;
     public event Action<Lineup>? DeleteLineupRequested;
@@ -97,14 +98,14 @@ public partial class LineupListView : UserControl
     public void RefreshAllBadges() => Rebuild();
 
     /// <summary>Scrolls back to the top so 本局推荐 is in view (after the opening info is recorded).</summary>
-    public void ShowRecommendations()
+    public void ShowRecommendations(LineupAvailabilityFilter? selectedFilter = null)
     {
         if (_vm is not null)
-            _vm.SelectedAvailabilityFilter = !_vm.HasRunInfo ? LineupAvailabilityFilter.All
+            _vm.SelectedAvailabilityFilter = selectedFilter ?? (!_vm.HasRunInfo ? LineupAvailabilityFilter.All
                 : _vm.Recommendations.Any(r => r.Kind is RecommendationKind.BannedButFine or RecommendationKind.NeedsRepair)
                     ? LineupAvailabilityFilter.Pending
                     : _vm.Recommendations.Any(r => r.Kind == RecommendationKind.Usable)
-                        ? LineupAvailabilityFilter.Available : LineupAvailabilityFilter.Unavailable;
+                        ? LineupAvailabilityFilter.Available : LineupAvailabilityFilter.Unavailable);
         _showAllRecommendations = false;
         Rebuild();
         if (FindScroll(this) is { } sv) sv.ScrollToTop();
@@ -216,6 +217,7 @@ public partial class LineupListView : UserControl
     private static LineupCardItem? Card(object sender) => (sender as FrameworkElement)?.DataContext as LineupCardItem;
 
     private void OnEditLineup(object sender, RoutedEventArgs e) { if (Card(sender) is { } c) EditLineupRequested?.Invoke(c.Lineup); }
+    private void OnOpenAutoRoute(object sender, RoutedEventArgs e) { if (Card(sender) is { } c) OpenAutoRouteRequested?.Invoke(c.Lineup); }
     private void OnShareLineup(object sender, RoutedEventArgs e) { if (Card(sender) is { } c) ShareLineupRequested?.Invoke(c.Lineup); }
     private void OnTrackLineup(object sender, RoutedEventArgs e) { if (Card(sender) is { } c) TrackLineupRequested?.Invoke(c.Lineup); }
     private void OnDeleteLineup(object sender, RoutedEventArgs e) { if (Card(sender) is { } c) DeleteLineupRequested?.Invoke(c.Lineup); }
@@ -258,6 +260,7 @@ public sealed class LineupCardItem
     public bool IsBest { get; init; }
     /// <summary>Share / delete live on the full list; 本局推荐 keeps to 修补 / 追踪 / 编辑.</summary>
     public bool ShowManage { get; init; }
+    public bool HasAutoRoute => Lineup.AutoRoute is not null;
 
     public static LineupCardItem From(Lineup lineup, LineupRecommendation? rec, LineupViewModel vm, bool isRecommendation, bool isBest)
     {

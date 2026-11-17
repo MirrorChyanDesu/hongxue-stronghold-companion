@@ -100,22 +100,22 @@ public class EditorMechSlotTests
         EquipmentTestData.Rules.EquipmentToCovenant.ToDictionary(p => p.Key, p => p.Value));
 
     [Fact]
-    public void MechStrategyPutsTheMechIntoOneOfTheNinePlaces()
+    public void MechStrategyPutsTheMechIntoOneOfTheFifteenPlaces()
     {
         var vm = new ASPAssistant.Core.ViewModels.LineupEditorViewModel(null, [Mech(), new() { Name = "普通干员" }], [], Calculator());
         vm.SetStrategy(0, PlannerStrategies.MechId);
 
-        vm.Slots.Should().HaveCount(9);
-        vm.RegularSlotIndices.Should().HaveCount(8);
-        vm.MechSlotIndex.Should().Be(8);
+        vm.Slots.Should().HaveCount(15);
+        vm.RegularSlotIndices.Should().HaveCount(14);
+        vm.MechSlotIndex.Should().Be(14);
         vm.SetSlotOperator(0, "普通干员");
         vm.FilledSlotCount.Should().Be(2);
 
         // removing the strategy gives the untouched mech's place back
         vm.SetStrategy(0, "");
-        vm.Slots.Should().HaveCount(9);
+        vm.Slots.Should().HaveCount(15);
         vm.MechSlotIndex.Should().Be(-1);
-        vm.RegularSlotIndices.Should().HaveCount(9);
+        vm.RegularSlotIndices.Should().HaveCount(15);
     }
 
     [Fact]
@@ -129,8 +129,8 @@ public class EditorMechSlotTests
 
         lineup.Slots.Should().ContainSingle(s => s.OperatorName == LineupEquipmentService.MechName);
         var again = new ASPAssistant.Core.ViewModels.LineupEditorViewModel(lineup, [Mech()], [], Calculator());
-        again.MechSlotIndex.Should().Be(8);
-        again.Slots[8].Equipments.Should().Equal("变形同构体", "炎国短刀");
+        again.MechSlotIndex.Should().Be(14);
+        again.Slots[14].Equipments.Should().Equal("变形同构体", "炎国短刀");
     }
 }
 

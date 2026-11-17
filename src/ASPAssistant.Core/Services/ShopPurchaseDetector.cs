@@ -87,7 +87,7 @@ public sealed class ShopPurchaseDetector
         }
         if (missing.Count > 0)
         {
-            var reason = !relevantMissing ? "not-tracked" : _stable < 2 ? "baseline-not-stable"
+            var reason = !relevantMissing ? "not-in-catalog" : _stable < 2 ? "baseline-not-stable"
                 : !(beforeMoney > economy.Money) ? "funds-not-decreased" : !empty ? "slot-not-empty" : "awaiting-second-empty-frame";
             var diagnostic = $"Candidate: reason={reason}, stable={_stable}, money={beforeMoney}->{economy.Money}, round={economy.Round}, missing=[{string.Join(", ", missing.Select(c => $"{c.Name}@{c.OcrRegion.X:F3}"))}]";
             if (diagnostic != _lastCandidateDiagnostic)

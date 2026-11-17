@@ -42,6 +42,8 @@ public class LineupStore
             {
                 var json = await File.ReadAllTextAsync(file);
                 lineup = JsonSerializer.Deserialize<Lineup>(json, JsonOptions);
+                lineup?.SklandGuide?.Validate();
+                if (lineup?.EditorStages is { } stages) SklandGuideStage.ValidateAll(stages);
                 if (lineup is not null && TerminalUpgradeReminder.DataError(lineup.UpgradeReminders) is { Length: > 0 } error)
                     throw new JsonException(error);
             }
@@ -112,6 +114,11 @@ public class LineupStore
         await _orderLock.WaitAsync();
         try
         {
+            if (lineup.AutoRoute is not null)
+            {
+                try { File.Copy(path, path + $".pre-auto-route-{Guid.NewGuid():N}.bak"); }
+                catch (FileNotFoundException) { /* A new lineup has no previous file. */ }
+            }
             await WriteAsync(path, lineup);
             var deleted = ReadDeletedIds(_dir);
             if (deleted.Remove(lineup.Id)) await WriteDeletedIdsAsync(deleted);

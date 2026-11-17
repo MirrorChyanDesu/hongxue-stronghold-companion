@@ -46,14 +46,16 @@ internal static class SklandImportViewTests
                     Name = "官方攻略草稿", SourceUrl = Services.SklandGuideImporterTests.Url,
                     Slots = [new() { OperatorName = "甲", IsElite = true }, new() { OperatorName = "乙" }]
                 };
-                const string notice = "已读取大成阵容 2 人、策略 0 项。推荐装备 20 件未绑定到干员，回合讲解 2 段未导入；请查看来源攻略。技能与模组沿用本地模式数据。检查并保存后才加入我的阵容，不自动追踪。";
+                const string notice = "已读取成型阵容 2 人、策略 0 项。推荐装备 20 件未绑定到干员，回合讲解 2 段未导入；请查看来源攻略。技能与模组沿用本地模式数据。检查并保存后才加入我的阵容，不自动追踪。";
                 var cancel = panel.OpenEditorAsync(draft, notice);
                 var editor = panel.OwnedWindows.OfType<LineupEditorWindow>().Single();
                 editor.Width = 760;
                 editor.Height = 680;
                 editor.UpdateLayout();
+                ((Button)editor.FindName("SourcePageButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                editor.UpdateLayout();
                 var url = (TextBox)editor.FindName("SourceUrlBox");
-                ((Border)editor.FindName("SourcePanel")).Visibility.Should().Be(Visibility.Visible);
+                ((FrameworkElement)editor.FindName("SourcePanel")).Visibility.Should().Be(Visibility.Visible);
                 url.Text.Should().Be(draft.SourceUrl);
                 url.IsReadOnly.Should().BeTrue();
                 ((TextBlock)editor.FindName("ImportNoticeText")).Text.Should().Be(notice);
@@ -86,25 +88,25 @@ internal static class SklandImportViewTests
                 Name = "20 人候选", SourceUrl = Services.SklandGuideImporterTests.Url,
                 Slots = operators.Skip(2).Select(op => new LineupSlot { OperatorName = op.Name }).ToList()
             };
-            var select = panel.OpenEditorAsync(candidates, "官方列出20名候选，已全部保留；请筛选至9人以内再保存。");
+            var select = panel.OpenEditorAsync(candidates, "官方列出20名候选，已全部保留；请移除至15人以内再保存。");
             var chooser = panel.OwnedWindows.OfType<LineupEditorWindow>().Single();
             var host = (ItemsControl)chooser.FindName("SlotsHost");
             host.Items.Count.Should().Be(20);
             ((Button)chooser.FindName("SaveButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             select.IsCompleted.Should().BeFalse();
             lineups.Lineups.Should().HaveCount(6, "too many candidates must not be saved");
-            ((TextBlock)chooser.FindName("EditorHint")).Text.Should().Contain("9");
-            for (var i = 0; i < 11; i++)
+            ((TextBlock)chooser.FindName("EditorHint")).Text.Should().Contain("15");
+            for (var i = 0; i < 5; i++)
             {
                 var card = (FrameworkElement)host.Items[0];
                 card.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "移出阵容"))
                     .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
             }
-            host.Items.Count.Should().Be(9);
+            host.Items.Count.Should().Be(15);
             ((Button)chooser.FindName("SaveButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Complete(select);
             lineups.Lineups.Should().HaveCount(7);
-            lineups.Lineups.Single(x => x.Id == candidates.Id).Slots.Should().HaveCount(9);
+            lineups.Lineups.Single(x => x.Id == candidates.Id).Slots.Should().HaveCount(15);
             candidates.Slots.Should().HaveCount(20);
             tracking.TrackedOperators.Should().BeEmpty();
 
@@ -129,9 +131,9 @@ internal static class SklandImportViewTests
                 {
                     var tab = tabs.Children.OfType<Button>().Single(button => Equals(button.DataContext, phase));
                     string.Concat(((TextBlock)tab.Content).Inlines.OfType<System.Windows.Documents.Run>().Select(run => run.Text))
-                        .Should().Be($"{phase} {people}");
+                        .Should().Be($"{(phase == LineupPhase.后期 ? "成型阵容" : phase.ToString())} {people}");
                     tab.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                    ((TextBlock)phaseEditor.FindName("EditorHint")).Text.Should().Contain(phase.ToString());
+                    ((TextBlock)phaseEditor.FindName("EditorHint")).Text.Should().Contain(phase == LineupPhase.后期 ? "成型阵容" : phase.ToString());
                     Save(phaseEditor, $"phases-{theme}-{night}-{phase}");
                 }
                 phaseEditor.Close();

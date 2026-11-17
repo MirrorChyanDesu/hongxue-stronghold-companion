@@ -40,7 +40,7 @@ public class TrackingViewModelTests
             [
                 Stage("开局", false, "过渡A", "过渡B", "角峰"),
                 Stage("前期", false, "过渡A", "角峰"),
-                Stage("大成（打 Boss）", true, "角峰", "史尔特尔"),
+                Stage("成型阵容（打 Boss）", true, "角峰", "史尔特尔"),
             ]
         };
 
@@ -52,7 +52,7 @@ public class TrackingViewModelTests
         vm.TrackedOperators.Single(e => e.Name == "过渡A").Should().Match<TrackingEntry>(e => e.IsTransition && e.Stages == "开局 · 前期");
         vm.TrackedOperators.Single(e => e.Name == "过渡B").Stages.Should().Be("开局");
 
-        // Tracking a lineup that contains a transition operator promotes it to 大成.
+        // Tracking a lineup that contains a transition operator promotes it to 成型阵容.
         vm.TrackMultipleLineups = true;
         vm.TrackLineup(new Lineup { Slots = [new() { OperatorName = "过渡B" }] });
         vm.TrackedOperators.Single(e => e.Name == "过渡B").Role.Should().Be(TrackingRole.Final);
@@ -66,7 +66,7 @@ public class TrackingViewModelTests
             new(new RouteStageDefinition("前期", 3, 3, 1, 1), [new("前期卡", 1, "", RouteOperatorRole.Transition)], []),
             new(new RouteStageDefinition("中期", 4, 4, 0, 1), [new("中期也用", 1, "", RouteOperatorRole.Transition)], []),
             new(new RouteStageDefinition("六本叠层", 6, 6, 0, 1) { Stacking = true }, [new("叠层卡", 1, "", RouteOperatorRole.Transition)], []),
-            Stage("大成（打 Boss）", true, "角峰"),
+            Stage("成型阵容（打 Boss）", true, "角峰"),
         ]
     };
 
@@ -171,7 +171,7 @@ public class TrackingViewModelTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void TrackLineup_IncludesAllPhasesAndDeduplicatesEquipment(bool multiple)
+    public void TrackLineupRetainsAllPhasesAndOnlyTracksCurrentEquipment(bool multiple)
     {
         var vm = new TrackingViewModel { TrackMultipleLineups = multiple };
         vm.AddTracking("原有干员", TrackingType.Operator);
@@ -184,15 +184,18 @@ public class TrackingViewModelTests
             SupportSlots = [new() { OperatorName = "挂件", Equipments = ["坚守盾牌"] }]
         };
 
-        vm.TrackLineup(lineup).Should().Be((4, 4));
+        vm.TrackLineup(lineup).Should().Be((4, 1));
 
         vm.TrackedOperators.Select(e => e.Name).Should().BeEquivalentTo(multiple
             ? new[] { "原有干员", "后期", "中期", "前期", "挂件" }
             : new[] { "后期", "中期", "前期", "挂件" });
         vm.TrackedEquipment.Select(e => e.Name).Should().BeEquivalentTo(multiple
-            ? new[] { "手动装备", "共享装备", "变形同构体", "炎国短刀", "坚守盾牌" }
-            : new[] { "共享装备", "变形同构体", "炎国短刀", "坚守盾牌" });
+            ? new[] { "手动装备", "共享装备" }
+            : new[] { "共享装备" });
         vm.TrackedOperators.Single(e => e.Name == "前期").Equipments.Should().Equal("变形同构体", "炎国短刀");
+        vm.SelectStage(vm.StageChoices.Single(c => c.LineupId == lineup.Id && c.StageId == "early"));
+        vm.TrackedEquipment.Select(e => e.Name).Should().BeEquivalentTo(multiple
+            ? new[] { "手动装备", "变形同构体", "炎国短刀" } : new[] { "变形同构体", "炎国短刀" });
         vm.TrackMultipleLineups = true;
         vm.TrackLineup(lineup).Should().Be((0, 0));
     }
@@ -217,7 +220,7 @@ public class TrackingViewModelTests
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(3)]
-    public void TrackLineup_DuplicateOperatorUsesHighestPriorityPhase(int firstPhase)
+    public void TrackLineupDuplicateOperatorUsesTheSelectedPhase(int firstPhase)
     {
         var vm = new TrackingViewModel { TrackMultipleLineups = true };
         vm.TrackLineup(new Lineup { Id = "editing", EarlySlots = [new() { OperatorName = "重复干员", Equipments = ["旧装备"] }] });
@@ -234,6 +237,7 @@ public class TrackingViewModelTests
             Id = "editing", Slots = phases[0], MidSlots = phases[1], EarlySlots = phases[2], SupportSlots = phases[3]
         }).Should().Be((0, 0));
 
+        vm.SelectStage(vm.StageChoices.Single(c => c.StageId == new[] { "final", "mid", "early", "support" }[firstPhase]));
         var entry = vm.TrackedOperators.Should().ContainSingle().Which;
         entry.IsElite.Should().BeTrue();
         entry.Equipments.Should().BeEmpty();

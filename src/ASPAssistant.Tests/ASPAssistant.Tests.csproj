@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+    <StartupObject>ASPAssistant.Tests.Views.AppExitProbe</StartupObject>
     <WindowsSdkPackageVersion>10.0.17763.56</WindowsSdkPackageVersion>
   </PropertyGroup>
 

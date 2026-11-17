@@ -139,9 +139,13 @@ internal static class EmulatorFixViewTests
         tracking.TrackedOperators.Single(e => e.Name == "最终").IsAcquired.Should().BeTrue();
         tracking.TrackedEquipment.Single(e => e.Name == "追踪装备").IsAcquired.Should().BeTrue();
         tracking.TrackedEquipment.Should().NotContain(e => e.Name == "未追踪装备");
+        tracking.CaptureState().PurchasedEquipment.Should().BeEquivalentTo("追踪装备", "未追踪装备");
         view.ApplyRecognizedPurchases(["最终", "追踪装备"]);
         state.CountOf("最终").Should().Be(1);
         tracking.TrackedEquipment.Single(e => e.Name == "追踪装备").IsAcquired.Should().BeTrue();
+        tracking.ClearAllTracking();
+        tracking.TrackLineup(new Lineup { Slots = [new() { OperatorName = "最终", Equipments = ["未追踪装备"] }] });
+        tracking.TrackedEquipment.Single().IsAcquired.Should().BeTrue();
         editor.Close(); host.Close();
     }
 
@@ -169,7 +173,18 @@ internal static class EmulatorFixViewTests
         panel.Topmost.Should().BeFalse();
         (User32.GetWindowLong(hwnd, User32.GWL_EXSTYLE) & 8).Should().Be(0);
         panel.UpdateTopmost(gameHwnd, hwnd);
-        panel.Topmost.Should().BeFalse("clicking an inactive assistant alone does not force topmost");
+        panel.Topmost.Should().BeTrue("Issue 32: focusing the assistant restores topmost after another app was active");
+        Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+        var nativeUntil = DateTime.UtcNow.AddSeconds(2);
+        while ((User32.GetWindowLong(hwnd, User32.GWL_EXSTYLE) & 8) == 0 && DateTime.UtcNow < nativeUntil)
+        {
+            Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+            Thread.Sleep(5);
+        }
+        (User32.GetWindowLong(hwnd, User32.GWL_EXSTYLE) & 8).Should().Be(8);
+        panel.UpdateTopmost(gameHwnd, new WindowInteropHelper(other).Handle);
+        panel.UpdateTopmost(gameHwnd, new WindowInteropHelper(dialog).Handle);
+        panel.Topmost.Should().BeTrue("an owned dialog also restores topmost from the inactive state");
         panel.UpdateTopmost(gameHwnd, gameHwnd);
         panel.UpdateTopmost(IntPtr.Zero, gameHwnd);
         panel.Topmost.Should().BeFalse();

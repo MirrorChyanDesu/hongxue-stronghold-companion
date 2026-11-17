@@ -49,7 +49,7 @@
         <Style x:Key="PhaseSegment" TargetType="Button" BasedOn="{StaticResource ClickableButtonBase}">
             <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
             <Setter Property="FontSize" Value="12" />
-            <Setter Property="Height" Value="26" />
+            <Setter Property="MinHeight" Value="26" />
             <Setter Property="Padding" Value="12,0" />
             <Setter Property="Margin" Value="0,0,2,0" />
             <Setter Property="Template">
@@ -201,7 +201,7 @@
             <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="Padding" Value="6,0" />
-            <Setter Property="Height" Value="26" />
+            <Setter Property="MinHeight" Value="26" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -211,6 +211,30 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="bg" Property="Background" Value="{DynamicResource NeutralHoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="EditorPageSegment" TargetType="Button" BasedOn="{StaticResource ClickableButtonBase}">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="9,3" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bg" Background="Transparent" CornerRadius="{DynamicResource RowCornerRadius}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="Tag" Value="active">
+                                <Setter TargetName="bg" Property="Background" Value="{DynamicResource AccentSolidBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
+                                <Setter Property="FontWeight" Value="Bold" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -228,11 +252,24 @@
                             Style="{StaticResource DialogCloseButton}" />
                     <Button x:Name="MinimizeButton" DockPanel.Dock="Right" Content="─" Click="OnMinimize"
                             ToolTip="最小化" Style="{StaticResource TitleBarButton}" />
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Grid VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                         <TextBlock Text="编辑阵容" Style="{StaticResource DialogTitleText}" />
-                        <TextBlock x:Name="TitleMeta" FontSize="11" Margin="2,0,0,0" VerticalAlignment="Center"
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,10,0" VerticalAlignment="Center">
+                            <TextBlock Text="｜" Foreground="{DynamicResource TitleMutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <Border x:Name="EditorPageSwitch" Width="160" Height="32" Padding="2"
+                                    Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                                    BorderThickness="1" CornerRadius="{DynamicResource RowCornerRadius}">
+                                <UniformGrid Rows="1">
+                                    <Button x:Name="LineupPageButton" Content="阵容" Tag="active" Style="{StaticResource EditorPageSegment}" Click="OnEditorPageClick" />
+                                    <Button x:Name="SourcePageButton" Content="来源" Style="{StaticResource EditorPageSegment}" Click="OnEditorPageClick" />
+                                </UniformGrid>
+                            </Border>
+                            <TextBlock Text="｜" Foreground="{DynamicResource TitleMutedBrush}" VerticalAlignment="Center" Margin="6,0,0,0" />
+                        </StackPanel>
+                        <TextBlock x:Name="TitleMeta" Grid.Column="2" FontSize="11" Margin="2,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                    Foreground="{DynamicResource TitleMutedBrush}" />
-                    </StackPanel>
+                    </Grid>
                 </DockPanel>
             </Border>
 
@@ -240,6 +277,8 @@
             <!-- Footer: validation on the left, actions on the right -->
             <Border Style="{StaticResource DialogFooter}" DockPanel.Dock="Bottom">
                 <DockPanel>
+                    <TextBlock x:Name="SaveErrorText" DockPanel.Dock="Top" TextWrapping="Wrap" FontSize="12"
+                               Margin="0,0,0,8" Visibility="Collapsed" Foreground="{DynamicResource TransitionTextBrush}" />
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
                         <Button Content="清空本阶段" Style="{StaticResource EditorGhostButton}" Click="OnClearClick" Margin="0,0,2,0" />
                         <Button Content="撤销修改" Style="{StaticResource EditorGhostButton}" Click="OnResetClick" Margin="0,0,10,0"
@@ -257,19 +296,23 @@
                 </DockPanel>
             </Border>
 
-            <Border x:Name="SourcePanel" DockPanel.Dock="Top" Visibility="Collapsed" Margin="14,10,14,0" Padding="10"
-                    Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="{DynamicResource RowCornerRadius}">
-                <StackPanel>
-                    <TextBlock Text="来源攻略" Style="{StaticResource FilterSectionTitle}" Margin="0,0,0,5" />
-                    <TextBox x:Name="SourceUrlBox" IsReadOnly="True" TextWrapping="Wrap" Style="{StaticResource DialogTextBox}"
-                             ToolTip="可选中文字复制原攻略链接" />
-                    <TextBlock x:Name="ImportNoticeText" TextWrapping="Wrap" Margin="0,6,0,0" FontSize="11"
-                               Foreground="{DynamicResource TextSecondaryBrush}" />
-                </StackPanel>
-            </Border>
-
             <Grid>
+            <ScrollViewer x:Name="GuideSourcePage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="16">
+                    <StackPanel x:Name="SourcePanel" Visibility="Collapsed" Margin="0,0,0,14">
+                        <TextBox x:Name="SourceUrlBox" FontSize="14" IsReadOnly="True" TextWrapping="Wrap" Style="{StaticResource DialogTextBox}"
+                                 ToolTip="可选中文字复制原攻略链接" />
+                        <TextBlock x:Name="ImportNoticeText" TextWrapping="Wrap" Margin="0,6,0,0" FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="GuideSourceMetadata" Visibility="Collapsed">
+                        <TextBlock x:Name="GuideAuthorText" FontSize="14" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <TextBlock x:Name="GuideScopeText" FontSize="14" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+            <Grid x:Name="LineupPage">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="236" />
@@ -333,7 +376,7 @@
                             </StackPanel>
                         </Border>
                         <DockPanel Margin="0,6,0,0">
-                            <Button x:Name="StrategyTab" DockPanel.Dock="Right" Height="34" Padding="12,0" Margin="8,0,0,0"
+                            <Button x:Name="StrategyTab" DockPanel.Dock="Right" VerticalAlignment="Top" Height="34" Padding="12,0" Margin="8,0,0,0"
                                     Style="{StaticResource DialogSecondaryButton}" Click="OnStrategyTabClick">
                                 <StackPanel Orientation="Horizontal">
                                     <!-- the chosen strategies' icons, overlapping a little -->
@@ -345,27 +388,37 @@
                             </Button>
                             <Border Padding="3" CornerRadius="{DynamicResource RowCornerRadius}" BorderThickness="1"
                                     Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}">
-                                <StackPanel x:Name="PhaseTabs" Orientation="Horizontal" />
+                                <Grid>
+                                    <WrapPanel x:Name="PhaseTabs" AllowDrop="True" PreviewDragOver="OnStageDragOver"
+                                               PreviewDrop="OnStageDrop" DragLeave="OnStageDragLeave">
+                                        <Button x:Name="AddStageButton" Content="＋" Style="{StaticResource PhaseSegment}" ToolTip="添加阶段" Click="OnAddStage" />
+                                    </WrapPanel>
+                                    <Canvas IsHitTestVisible="False">
+                                        <Border x:Name="StageDropMarker" Width="3" CornerRadius="1" Visibility="Collapsed"
+                                                Background="{DynamicResource AccentSolidBrush}" />
+                                    </Canvas>
+                                </Grid>
                             </Border>
                         </DockPanel>
                     </StackPanel>
 
                     <!-- 目标盟约: what the lineup is built to reach (filter and 本局推荐 use these) -->
-                    <Border DockPanel.Dock="Top" Margin="0,0,0,10" Padding="10,5,6,1" BorderThickness="1"
+                    <Border x:Name="TargetCovenantPanel" DockPanel.Dock="Top" Margin="0,0,0,10" Padding="10,5,6,1" BorderThickness="1"
                             CornerRadius="{DynamicResource CardCornerRadius}" Background="{DynamicResource CardBackgroundBrush}"
                             BorderBrush="{DynamicResource LineBrush}">
                         <DockPanel>
                             <Button x:Name="FillTargetsButton" DockPanel.Dock="Right" VerticalAlignment="Top" Margin="6,0,0,4"
-                                    Content="按后期填写" Style="{StaticResource EditorLinkButton}" Click="OnFillTargets"
-                                    ToolTip="用后期阵容现在激活的盟约（够人数的记作 Ⅱ）替换目标" />
+                                    Content="按成型阵容填写" Style="{StaticResource EditorLinkButton}" Click="OnFillTargets"
+                                    ToolTip="用成型阵容现在激活的盟约（够人数的记作 Ⅱ）替换目标" />
                             <TextBlock DockPanel.Dock="Left" Text="目标盟约" FontSize="11" FontWeight="Bold" Margin="0,6,10,0" VerticalAlignment="Top"
                                        Foreground="{DynamicResource TextSecondaryBrush}" />
                             <WrapPanel x:Name="TargetChips" />
                         </DockPanel>
                     </Border>
 
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ScrollViewer x:Name="EditorStageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel>
+                            <StackPanel x:Name="GuideContentHost" Visibility="Collapsed" Margin="0,0,0,10" />
                             <!-- strategy-only piece (暴躁铁皮): outside the 9 places -->
                             <ContentControl x:Name="MechHost" Focusable="False" Margin="0,0,0,10" Visibility="Collapsed" />
                             <ItemsControl x:Name="SlotsHost" Focusable="False">
@@ -394,6 +447,7 @@
                         </StackPanel>
                     </ScrollViewer>
                 </Border>
+            </Grid>
             </Grid>
             </DockPanel>
         </DockPanel>

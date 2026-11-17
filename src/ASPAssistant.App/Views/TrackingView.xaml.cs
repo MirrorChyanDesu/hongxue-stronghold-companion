@@ -1,4 +1,4 @@
-﻿// Modified for ASP Assistant Arknights on 2026-11-13; see NOTICE.
+// Modified for ASP Assistant Arknights on 2026-11-13; see NOTICE.
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Windows;
@@ -32,7 +32,9 @@ public partial class TrackingView : UserControl
     private INotifyCollectionChanged? _operators;
     private INotifyCollectionChanged? _equipment;
     private CovenantCalculator? _calculator;
+    private bool _covenantSizingDirty = true;
     private bool _updatingUpgradeSource;
+    private bool _updatingStageControls;
     public static readonly DependencyProperty EquipmentRulesProperty = DependencyProperty.Register(
         nameof(EquipmentRules), typeof(LineupEquipmentService), typeof(TrackingView));
     public LineupEquipmentService EquipmentRules => (LineupEquipmentService)GetValue(EquipmentRulesProperty);
@@ -52,6 +54,7 @@ public partial class TrackingView : UserControl
     public void SetCovenantCalculator(CovenantCalculator calculator)
     {
         _calculator = calculator;
+        _covenantSizingDirty = true;
         SetValue(EquipmentRulesProperty, calculator.EquipmentRules);
         RefreshSummary();
     }
@@ -66,10 +69,11 @@ public partial class TrackingView : UserControl
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (_vm?.StageTargetsUpdating == true) return;
         if (e.PropertyName is nameof(TrackingViewModel.TrackedOperators) or nameof(TrackingViewModel.TrackedEquipment))
             HookCollections();
         else if (e.PropertyName is nameof(TrackingViewModel.TerminalLevel) or nameof(TrackingViewModel.TerminalLevelText)
-                 or nameof(TrackingViewModel.OperatorProgress) or nameof(TrackingViewModel.Economy))
+                 or nameof(TrackingViewModel.OperatorProgress) or nameof(TrackingViewModel.Economy) or nameof(TrackingViewModel.SelectedStageChoice) or nameof(TrackingViewModel.ShowAllStages) or nameof(TrackingViewModel.DisplayEquipment))
             RefreshSummary();
         else if (e.PropertyName is nameof(TrackingViewModel.UpgradeReminder) or nameof(TrackingViewModel.UpgradeReminderSources)
                  or nameof(TrackingViewModel.UpgradeReminderLineupId))
@@ -84,16 +88,26 @@ public partial class TrackingView : UserControl
         _equipment = _vm?.TrackedEquipment;
         if (_operators is not null) _operators.CollectionChanged += OnCollectionChanged;
         if (_equipment is not null) _equipment.CollectionChanged += OnCollectionChanged;
+        _covenantSizingDirty = true;
         RefreshSummary();
     }
 
-    private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => RefreshSummary();
+    private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_vm?.StageTargetsUpdating == true) return;
+        _covenantSizingDirty = true;
+        RefreshSummary();
+    }
 
     /// <summary>Updates the empty state and the covenant tally of tracked operators.</summary>
     private void RefreshSummary()
     {
-        var operators = _vm?.TrackedOperators.ToList() ?? [];
-        var equipment = _vm?.TrackedEquipment.ToList() ?? [];
+        var currentOperators = _vm?.TrackedOperators.Where(e => e.IsStageActive).ToList() ?? [];
+        var operators = _vm?.DisplayOperators ?? [];
+        bool overview = _vm?.ShowAllStages == true;
+        bool stages = _vm?.StageChoices.Count > 0;
+        RefreshStageControls();
+        var equipment = _vm?.DisplayEquipment ?? [];
         var all = operators.Concat(equipment).Where(e => !e.IsExpired).ToList();
         var filter = CompletionFilterList.SelectedIndex;
         bool Match(TrackingEntry entry) => filter == 2 || entry.IsAcquired == (filter == 1);
@@ -101,11 +115,12 @@ public partial class TrackingView : UserControl
         EquipmentCells.ItemsSource = equipmentShown;
         EquipmentCount.Text = $"{equipmentShown.Count} 件";
         ProgressSummary.Text = $"待完成 {all.Count(e => !e.IsAcquired)} · 已完成 {all.Count(e => e.IsAcquired)}";
-        ClearAllButton.Visibility = operators.Count + equipment.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        ClearAllButton.Visibility = _vm?.TrackedOperators.Count > 0 || _vm?.TrackedEquipment.Any(e => e.IsManual || e.IsStageActive) == true
+            ? Visibility.Visible : Visibility.Hidden;
 
         var lineup = new Lineup
         {
-            Slots = operators.Where(e => e.Role == TrackingRole.Final).Select(e => new LineupSlot
+            Slots = currentOperators.Where(e => stages || e.Role == TrackingRole.Final).Select(e => new LineupSlot
             {
                 OperatorName = e.Name, Equipments = e.Equipments, IsElite = e.IsElite
             }).ToList()
@@ -113,6 +128,16 @@ public partial class TrackingView : UserControl
         var tally = (_calculator?.Compute(lineup) ?? []).Where(s => s.Count > 0)
             .OrderByDescending(s => s.BondType == "SEASON").ThenByDescending(s => s.Count)
             .Select(s => new TrackedCovenantChip(s.Name, s.Count, s.BondType == "SEASON")).ToList();
+        if (_covenantSizingDirty)
+        {
+            var sizing = new Lineup { Slots = _vm?.TrackedOperators.SelectMany(e => e.Origins.Count > 0
+                ? e.Origins.Select(o => new LineupSlot { OperatorName = e.Name, Equipments = o.Equipments, IsElite = o.IsElite })
+                : [new LineupSlot { OperatorName = e.Name, Equipments = e.Equipments, IsElite = e.IsElite }]).ToList() ?? [] };
+            CovenantSizingChips.ItemsSource = (_calculator?.Compute(sizing) ?? []).Where(s => s.Count > 0)
+                .OrderByDescending(s => s.BondType == "SEASON").ThenByDescending(s => s.Count)
+                .Select(s => new TrackedCovenantChip(s.Name, s.Count, s.BondType == "SEASON")).ToList();
+            _covenantSizingDirty = false;
+        }
         TrackedCovenantChips.ItemsSource = tally;
         TrackedCovenantChips.Visibility = tally.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
@@ -120,18 +145,29 @@ public partial class TrackingView : UserControl
         var rules = EquipmentRules;
         var cells = operators.Where(e => !e.IsExpired && Match(e)).Select(e =>
         {
-            var cell = TrackedCell.From(e, db.GetValueOrDefault(e.Name), rules);
+            var cell = TrackedCell.From(e, db.GetValueOrDefault(e.Name), overview ? null : rules);
+            if (overview)
+            {
+                var labels = e.Origins.Count > 0 ? e.Origins.Select(o => o.Stages.Length > 0 ? o.Stages
+                    : o.LineupId.Length > 0 || o.IsRoute ? "成型阵容" : "手动").Distinct() : [e.Stages.Length > 0 ? e.Stages : "手动"];
+                cell = cell with { Sub = "阶段：" + string.Join("、", labels), Transformations = [], LegacyCovenant = "" };
+            }
             return cell with { Progress = _vm!.OperatorProgress(e), Sub = $"目标：{(e.IsElite ? "精锐" : "获取")} · {cell.Sub}" };
         }).ToList();
-        Fill(FinalSection, FinalCells, FinalCount, cells.Where(c => c.Kind == TrackedCellKind.Final).ToList());
-        Fill(TransitionSection, TransitionCells, TransitionCount, cells.Where(c => c.Kind == TrackedCellKind.Transition).ToList());
+        Fill(FinalSection, FinalCells, FinalCount, cells.Where(c => stages || overview || c.Kind == TrackedCellKind.Final).ToList());
+        if (stages) FinalSection.Visibility = Visibility.Visible;
+        TrackedCovenantChips.ToolTip = stages ? "当前阶段干员带来的盟约人数，包含已完成干员与计划装备" : "目标成型阵容干员带来的盟约人数，包含已完成干员与计划转职，不计过渡干员";
+        TrackedCovenantTitle.Text = stages ? "目标盟约 · 当前阶段干员合计" : "目标盟约 · 成型阵容干员合计";
+        Fill(TransitionSection, TransitionCells, TransitionCount, cells.Where(c => !stages && !overview && c.Kind == TrackedCellKind.Transition).ToList());
         var past = operators.Where(e => e.IsExpired).Select(e => TrackedCell.From(e, db.GetValueOrDefault(e.Name), rules) with { Progress = "已过期" }).ToList();
         Fill(PastSection, PastCells, PastCount, past);
         var empty = cells.Count + equipmentShown.Count == 0 && (filter != 2 || past.Count == 0);
         EmptyState.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
         EmptyState.Title = operators.Count + equipment.Count == 0 ? "还没有追踪目标" : filter == 0 ? "当前目标已完成" : "没有符合筛选的目标";
+        if (stages && !overview && operators.Count == 0) EmptyState.Title = "当前阶段没有上阵干员";
         EmptyState.Hint = operators.Count + equipment.Count == 0 ? "在干员、装备页点 ☆，或在阵容、规划页点“追踪”。"
             : "可切换筛选查看其他目标，或到干员状态更新获取与精锐。";
+        if (stages && !overview && operators.Count == 0) EmptyState.Hint = "切换其他阶段，或在阵容编辑器中设置本阶段的上阵干员。";
         EquipmentSection.Visibility = equipmentShown.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
         // Terminal level card
@@ -141,7 +177,7 @@ public partial class TrackingView : UserControl
             : _vm.ManualTerminalLevel is not null ? "手动指定 · 自动识别追上后恢复自动"
             : _vm.IsTerminalLevelRestored ? "上次记录 · 打开商店后确认"
             : "自动识别";
-        var pastStages = operators.Where(e => e.IsExpired).SelectMany(e => e.Stages.Split(['、', '→', '·', ' '],
+        var pastStages = currentOperators.Where(e => e.IsExpired).SelectMany(e => e.Stages.Split(['、', '→', '·', ' '],
                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)).Distinct().ToList();
         LevelDetail.Text = pastStages.Count > 0 && level > 0 ? $"{source} · {string.Join("、", pastStages)}已过" : source;
         LevelDetail.ToolTip = _vm?.TerminalLevelText;
@@ -255,13 +291,45 @@ public partial class TrackingView : UserControl
         PastToggle.Content = (open ? "▾ " : "▸ ") + "已过期的过渡干员";
     }
 
+    private void RefreshStageControls()
+    {
+        _updatingStageControls = true;
+        bool stages = _vm?.StageChoices.Count > 0;
+        StageSelector.Visibility = stages ? Visibility.Visible : Visibility.Collapsed;
+        FinalTitle.Text = _vm?.ShowAllStages == true ? "全程干员" : "成型阵容干员";
+        FinalTitle.Visibility = stages ? Visibility.Collapsed : Visibility.Visible;
+        AutoStagePanel.Visibility = stages ? Visibility.Visible : Visibility.Collapsed;
+        StageSelector.ItemsSource = _vm?.StageChoices;
+        StageSelector.SelectedItem = _vm?.SelectedStageChoice;
+        AutoStageToggle.IsChecked = _vm?.AutomaticStageSwitch == true;
+        StageSwitchHint.Text = _vm?.StageSwitchHint ?? "";
+        StageSwitchHint.Visibility = StageSwitchHint.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        _updatingStageControls = false;
+    }
+
+    private void OnStageSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_updatingStageControls && StageSelector.SelectedItem is TrackingStageChoice choice) _vm!.SelectStage(choice);
+    }
+
+    private void OnAutomaticStageChanged(object sender, RoutedEventArgs e)
+    {
+        if (!_updatingStageControls) _vm!.SetAutomaticStageSwitch(AutoStageToggle.IsChecked == true);
+    }
+
     private void OnToggleGroup(object sender, RoutedEventArgs e)
     {
         var button = (Button)sender;
         var body = (FrameworkElement)button.Tag;
         var open = body.Visibility != Visibility.Visible;
         body.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
-        button.Content = open ? "收起" : "展开";
+        if (button.Content is System.Windows.Shapes.Path icon)
+        {
+            icon.Data = System.Windows.Media.Geometry.Parse(open ? "M3,6 L8,11 L13,6" : "M6,3 L11,8 L6,13");
+            icon.Width = open ? 11 : 7; icon.Height = open ? 7 : 11;
+            button.ToolTip = open ? "收起列表" : "展开列表";
+        }
+        else button.Content = open ? "收起" : "展开";
     }
 
     private void OnCompletionFilterChanged(object sender, SelectionChangedEventArgs e)

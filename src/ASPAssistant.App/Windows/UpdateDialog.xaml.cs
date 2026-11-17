@@ -13,6 +13,7 @@ public partial class UpdateDialog : Window
     public UpdateDialog(UpdateInfo updateInfo)
     {
         InitializeComponent();
+        WindowUiScale.PrepareCentered(this);
 
         TitleText.Text = $"发现新版本 {updateInfo.TagName}";
 

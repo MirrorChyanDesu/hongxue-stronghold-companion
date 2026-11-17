@@ -57,6 +57,7 @@ public partial class StrategyPickerWindow : Window
     public StrategyPickerWindow(IEnumerable<Strategy> strategies, IEnumerable<LineupStrategySlot> current)
     {
         InitializeComponent();
+        WindowUiScale.PrepareCentered(this);
         _rows = [.. strategies.Select(s => new StrategyPickRow(s))];
         foreach (var (slot, index) in current.Select((slot, index) => (slot, index)))
         {
@@ -106,12 +107,12 @@ public partial class StrategyPickerWindow : Window
         if (ItemsControl.ContainerFromElement(ItemsList, e.OriginalSource as DependencyObject) is not ListBoxItem { Content: StrategyPickRow row }) return;
         for (var d = e.OriginalSource as DependencyObject; d is not null && d != ItemsList; d = System.Windows.Media.VisualTreeHelper.GetParent(d))
             if (d is ToggleButton) return;
-        if (!row.IsChosen && _chosen.Count + _unknown.Count >= LineupEditorViewModel.MaxSlots)
+        if (!row.IsChosen && _chosen.Count + _unknown.Count >= LineupEditorViewModel.MaxStrategySlots)
         {
-            HintText.Text = $"最多选择{LineupEditorViewModel.MaxSlots}个策略，请先移出一个";
+            HintText.Text = $"最多选择{LineupEditorViewModel.MaxStrategySlots}个策略，请先移出一个";
             return;
         }
-        HintText.Text = $"单击加入或移出，可选多个（最多{LineupEditorViewModel.MaxSlots}个）";
+        HintText.Text = $"单击加入或移出，可选多个（最多{LineupEditorViewModel.MaxStrategySlots}个）";
         row.IsChosen = !row.IsChosen;
         if (row.IsChosen) _chosen.Add(row);
         else _chosen.Remove(row);

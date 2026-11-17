@@ -243,7 +243,7 @@ public partial class OperatorBrowseViewModel : ObservableObject
         foreach (var chip in CoreChips)
         {
             chip.Count = _allOperators.Count(o => o.CoreCovenants.Contains(chip.Value) && Usable(o));
-            chip.Ban = _isCovenantBanned?.Invoke(chip.Value) == true ? FilterChipBan.Blocked : FilterChipBan.None;
+            chip.Ban = _isCovenantBanned?.Invoke(chip.Value) == true ? FilterChipBan.Reduced : FilterChipBan.None;
         }
         foreach (var chip in OtherChips)
         {
@@ -320,7 +320,7 @@ public partial class OperatorBrowseViewModel : ObservableObject
         var core = _allOperators.Where(MatchesSource).SelectMany(o => o.CoreCovenants).Where(c => c.Length > 0).ToHashSet();
         var other = _allOperators.Where(MatchesSource).SelectMany(o => o.AdditionalCovenants).Where(c => c.Length > 0 && !core.Contains(c));
         UpdateChoices(AvailableCoreCovenants, ["", .. core.Where(c => !OnlyCurrentRun || HighlightedCovenants.Contains(c)).Order()]);
-        UpdateChoices(AvailableOtherCovenants, ["", .. other.Where(c => !OnlyCurrentRun || HighlightedCovenants.Contains(c)).Distinct().Order()]);
+        UpdateChoices(AvailableOtherCovenants, ["", .. other.Distinct().Order()]);
         _selectedCoreCovenantFilters.RemoveWhere(c => !AvailableCoreCovenants.Contains(c));
         _selectedOtherCovenantFilters.RemoveWhere(c => !AvailableOtherCovenants.Contains(c));
         // 只看本局: the covenant chips follow the choices, keeping existing chips (and their state) in place

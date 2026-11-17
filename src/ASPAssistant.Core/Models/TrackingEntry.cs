@@ -20,7 +20,7 @@ public enum TrackedEquipmentKind
     Candidate,
 }
 
-/// <summary>大成 = part of the final lineup (green); 过渡 = only used on the way (orange).</summary>
+/// <summary>成型阵容 = part of the final lineup (green); 过渡 = only used on the way (orange).</summary>
 public enum TrackingRole
 {
     Final,
@@ -77,6 +77,9 @@ public class TrackingEntry
 
     [JsonPropertyName("origins")]
     public List<TrackingOrigin> Origins { get; set; } = [];
+
+    [JsonIgnore]
+    public bool IsStageActive { get; set; } = true;
 
     [JsonIgnore]
     public bool IsTransition => Role == TrackingRole.Transition;

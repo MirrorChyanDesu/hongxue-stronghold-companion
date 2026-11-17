@@ -597,19 +597,63 @@
                                 <TextBlock Text="{Binding Note}" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TransitionTextBrush}" />
                             </DockPanel>
                         </Border>
-                        <UniformGrid Columns="3">
+                        <StackPanel Visibility="{Binding RequiresStageRepair, Converter={StaticResource BoolToVis}}" Margin="0,0,0,8">
+                            <DockPanel>
+                                <Button Content="取消" DockPanel.Dock="Right" Style="{StaticResource PlannerLinkButton}" Margin="8,0,0,0"
+                                        Visibility="{Binding IsStageRepairBusy, Converter={StaticResource BoolToVis}}"
+                                        Command="{Binding DataContext.PreviewStageRepairCancelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                                <Button Content="预览各阶段修补" Style="{StaticResource DialogSecondaryButton}" MinWidth="0"
+                                        Command="{Binding DataContext.PreviewStageRepairCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                            </DockPanel>
+                            <TextBlock Text="保留原人数和可用干员，替补不超过原阶段最高等阶。预览后可保存或追踪。"
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,5,0,0" />
+                            <StackPanel Visibility="{Binding HasStageRepair, Converter={StaticResource BoolToVis}}" Margin="0,8,0,0">
+                                <TextBlock Text="{Binding StageRepair.Summary}" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap" />
+                                <ItemsControl ItemsSource="{Binding StageRepair.Stages}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource SectionBackgroundBrush}" CornerRadius="{DynamicResource RowCornerRadius}" Padding="8" Margin="0,6,0,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding BoundsText}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                                    <TextBlock Text="{Binding ChangeText}" FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                                    <TextBlock Text="{Binding MembersText}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                                    <TextBlock Text="{Binding WarningText}" FontSize="11" Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                                               Visibility="{Binding HasWarning, Converter={StaticResource BoolToVis}}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="原攻略讲解和推荐装备保留，换人后请核对；新增替补不会继承被换下干员的技能、模组或装备。"
+                                           FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </StackPanel>
+                        <UniformGrid>
+                            <UniformGrid.Style>
+                                <Style TargetType="UniformGrid">
+                                    <Setter Property="Columns" Value="3" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RequiresStageRepair}" Value="True"><Setter Property="Columns" Value="2" /></DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </UniformGrid.Style>
                             <Button Content="追踪" Style="{StaticResource DialogSecondaryButton}" MinWidth="0" Margin="0,0,3,0"
+                                    IsEnabled="{Binding CanUseRepair}"
                                     ToolTip="把这些干员加入追踪列表"
                                     Command="{Binding DataContext.TrackLineupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
                             <Button Content="保存为阵容" Style="{StaticResource DialogSecondaryButton}" MinWidth="0" Margin="3,0"
+                                    IsEnabled="{Binding CanUseRepair}"
                                     ToolTip="保存后可在阵容页编辑装备"
                                     Command="{Binding DataContext.SaveLineupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
                             <Button Content="道中路线 ›" Style="{StaticResource DialogPrimaryButton}" MinWidth="0" Margin="3,0,0,0"
-                                    ToolTip="从开局到大成每个阶段的过渡阵容"
+                                    Visibility="{Binding RequiresStageRepair, Converter={StaticResource InverseBoolToVis}}"
+                                    ToolTip="从开局到成型阵容每个阶段的过渡阵容"
                                     Command="{Binding DataContext.ShowRouteForCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
                         </UniformGrid>
                         <Button Content="覆盖原阵容" Style="{StaticResource DialogSecondaryButton}" MinWidth="0" Margin="0,6,0,0"
-                                ToolTip="用这个方案替换原阵容的后期；留下的干员保留装备和候选，前期、中期、目标盟约不变"
+                                ToolTip="保存修补后的成型与各阶段；保留阶段名称、回合和原有可用干员的配置"
+                                IsEnabled="{Binding CanUseRepair}"
                                 Visibility="{Binding DataContext.IsRepairing, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}"
                                 Command="{Binding DataContext.OverwriteLineupCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
                     </StackPanel>
@@ -765,6 +809,38 @@
                             <TextBlock Text="{Binding ChangeText}" FontSize="10" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextSecondaryBrush}"
                                        ToolTip="{Binding ChangeText}" />
                         </DockPanel>
+                        <Border Background="{DynamicResource SectionBackgroundBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,0,0,8"
+                                Visibility="{Binding HasAdvice, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{Binding AdviceLevels}">
+                                    <ItemsControl.ItemTemplate><DataTemplate>
+                                        <StackPanel Margin="0,0,0,10">
+                                            <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                            <TextBlock Text="当前目标" Style="{StaticResource PlannerHint}" Margin="0,5,0,2" />
+                                            <TextBlock Text="{Binding Focus}" TextWrapping="Wrap" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                            <TextBlock Text="优先购买 · 持有记录不代表实际上场" Style="{StaticResource PlannerHint}" Margin="0,6,0,2" />
+                                            <TextBlock Text="{Binding PurchaseText}" TextWrapping="Wrap" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                            <TextBlock Text="升本条件" Style="{StaticResource PlannerHint}" Margin="0,6,0,2" />
+                                            <TextBlock Text="{Binding UpgradeText}" TextWrapping="Wrap" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                            <TextBlock Text="{Binding EconomyText}" Style="{StaticResource PlannerHint}" Margin="0,4,0,0" />
+                                            <StackPanel Visibility="{Binding HasReserve, Converter={StaticResource BoolToVis}}" Margin="0,7,0,0">
+                                                <TextBlock Text="提前留牌 · 有余钱与空位再买，保留关键购买及升级资金" Style="{StaticResource PlannerHint}" />
+                                                <ItemsControl ItemsSource="{Binding Reserve}">
+                                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate><DataTemplate>
+                                                        <StackPanel Width="60" Margin="0,5,5,0">
+                                                            <controls:Avatar Source="{Binding IconPath}" Text="{Binding Name}" Width="32" Height="32" />
+                                                            <TextBlock Text="{Binding Name}" FontSize="10" TextWrapping="Wrap" TextAlignment="Center" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                                            <TextBlock Text="{Binding NeededAt}" FontSize="9" TextWrapping="Wrap" TextAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                        </StackPanel>
+                                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
                         <ItemsControl ItemsSource="{Binding Covenants}" Focusable="False">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
@@ -812,7 +888,7 @@
             </DataTemplate.Triggers>
         </DataTemplate>
 
-        <!-- Stepper node: 开局 → 大成 -->
+        <!-- Stepper node: 开局 → 成型阵容 -->
         <DataTemplate x:Key="RouteStepTemplate" DataType="{x:Type vm:RouteStepItem}">
             <Button Cursor="Hand" Focusable="False" ToolTip="{Binding Name}" ToolTipService.InitialShowDelay="600"
                     Command="{Binding DataContext.SelectRouteStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
@@ -859,6 +935,82 @@
                 </DataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
+        <DataTemplate x:Key="AutoStyleButtonTemplate" DataType="{x:Type vm:AutoStyleChoice}">
+            <Button x:Name="open" Content="{Binding Label}" Style="{StaticResource DialogSecondaryButton}" MinWidth="0" Margin="0,0,6,0"
+                    ToolTip="{Binding Hint}" ToolTipService.InitialShowDelay="350"
+                    Command="{Binding DataContext.OpenAutoPlanCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsRecommended}" Value="True">
+                    <Setter TargetName="open" Property="Style" Value="{StaticResource DialogPrimaryButton}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- One 本家: its 大成 lineup, where its stackers sit, and the two ways to play it -->
+        <DataTemplate x:Key="AutoPlanCardTemplate" DataType="{x:Type vm:AutoPlanItem}">
+            <Border Style="{StaticResource ItemCardBorder}" CornerRadius="{DynamicResource CardCornerRadius}" Padding="10" Margin="0,0,0,8">
+                <StackPanel>
+                    <DockPanel>
+                        <Border x:Name="rank" DockPanel.Dock="Left" Width="26" Height="26" Margin="0,0,8,0" VerticalAlignment="Top"
+                                CornerRadius="{DynamicResource RowCornerRadius}" Background="{DynamicResource SectionBackgroundBrush}">
+                            <TextBlock x:Name="rankText" Text="{Binding Rank}" FontSize="13" FontWeight="Bold" FontFamily="{DynamicResource NumberFontFamily}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock Text="{Binding Subtitle}" Style="{StaticResource PlannerHint}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding Covenants}" Focusable="False" Margin="0,8,0,-4">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:PlannerGoalPill}">
+                                <Border x:Name="pill" CornerRadius="{DynamicResource PillCornerRadius}" Padding="7,1" Margin="0,0,4,4" BorderThickness="1"
+                                        Background="{DynamicResource SuccessTintBrush}" BorderBrush="Transparent">
+                                    <TextBlock x:Name="pillText" Text="{Binding Text}" FontSize="10" Foreground="{DynamicResource SuccessTextBrush}" />
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsGoal}" Value="True">
+                                        <Setter TargetName="pill" Property="BorderBrush" Value="{DynamicResource SuccessBrush}" />
+                                        <Setter TargetName="pillText" Property="FontWeight" Value="Bold" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ContentControl Content="{Binding StrategyPiece}" ContentTemplate="{StaticResource StrategyPieceTemplate}" Focusable="False"
+                                    Margin="0,8,0,0" Visibility="{Binding HasStrategyPiece, Converter={StaticResource BoolToVis}}" />
+                    <ItemsControl ItemsSource="{Binding Operators}" ItemTemplate="{StaticResource PlannedAvatarTemplate}" Focusable="False" Margin="0,8,0,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Rows="1" Columns="9" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                    <TextBlock Text="{Binding StackText}" Style="{StaticResource PlannerHint}" Margin="0,7,0,0" />
+                    <TextBlock Text="{Binding LayerText}" Style="{StaticResource PlannerHint}" Margin="0,2,0,0"
+                               ToolTip="按普通版本特质估算，每回合给本家叠的层数（最多算 3 名叠层手）"
+                               Visibility="{Binding HasLayerText, Converter={StaticResource BoolToVis}}" />
+                    <TextBlock Text="{Binding Note}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0"
+                               Foreground="{DynamicResource TransitionTextBrush}"
+                               Visibility="{Binding HasNote, Converter={StaticResource BoolToVis}}" />
+                    <ItemsControl ItemsSource="{Binding Styles}" ItemTemplate="{StaticResource AutoStyleButtonTemplate}" Focusable="False" Margin="0,9,-6,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                    <TextBlock Text="{Binding StyleReason}" Style="{StaticResource PlannerHint}" Margin="0,6,0,0" />
+                </StackPanel>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsFirst}" Value="True">
+                    <Setter TargetName="rank" Property="Background" Value="{DynamicResource AccentSolidBrush}" />
+                    <Setter TargetName="rankText" Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
     </UserControl.Resources>
 
     <DockPanel>
@@ -867,13 +1019,18 @@
             <!-- Not the title-bar colour: it is near-black in the Ursus / Closure day themes, where the text is dark -->
             <Border Background="{DynamicResource SectionBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1" CornerRadius="{DynamicResource RowCornerRadius}" Padding="3">
-                <UniformGrid Columns="2">
+                <UniformGrid Columns="3">
+                    <Button x:Name="AutoTabButton" Content="自动推荐" Margin="0,0,2,0" Command="{Binding ShowAutoPageCommand}">
+                        <Button.Style><Style TargetType="Button" BasedOn="{StaticResource PlannerSegmentButton}">
+                            <Style.Triggers><DataTrigger Binding="{Binding ShowAuto}" Value="True"><Setter Property="Tag" Value="Active" /></DataTrigger></Style.Triggers>
+                        </Style></Button.Style>
+                    </Button>
                     <Button x:Name="GoalTabButton" Margin="0,0,2,0"
                             Content="{Binding GoalTabText}" Command="{Binding ShowGoalPageCommand}" >
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource PlannerSegmentButton}">
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ShowResults}" Value="False">
+                                    <DataTrigger Binding="{Binding ShowGoals}" Value="True">
                                         <Setter Property="Tag" Value="Active" />
                                     </DataTrigger>
                                 </Style.Triggers>
@@ -975,7 +1132,7 @@
                     <TextBlock Text="{Binding StrategyHint}" Style="{StaticResource PlannerHint}" Margin="0,5,0,0" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
             </Border>
-            <DockPanel Margin="0,8,0,0" Visibility="{Binding ShowResults, Converter={StaticResource InverseBoolToVis}}">
+            <DockPanel Margin="0,8,0,0" Visibility="{Binding ShowGoals, Converter={StaticResource BoolToVis}}">
                 <CheckBox DockPanel.Dock="Right" Content="只看本局" FontSize="11" VerticalContentAlignment="Center"
                           Foreground="{DynamicResource TextPrimaryBrush}" IsChecked="{Binding OnlyCurrentRun}"
                           IsEnabled="{Binding HasRunInfo}" ToolTip="只显示本局可用的盟约（已选目标始终显示）" />
@@ -987,12 +1144,12 @@
         </StackPanel>
 
         <!-- Footer -->
-        <Border DockPanel.Dock="Bottom" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}"
+        <Border Visibility="{Binding ShowAuto, Converter={StaticResource InverseBoolToVis}}" DockPanel.Dock="Bottom" Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0" Padding="10,8,10,9">
             <DockPanel>
                 <Button DockPanel.Dock="Right" Style="{StaticResource PlannerPrimaryButton}" Height="30" Padding="14,0" FontSize="12"
                         Content="{Binding ViewResultsText}" Command="{Binding ShowResultPageCommand}"
-                        Visibility="{Binding ShowResults, Converter={StaticResource InverseBoolToVis}}" />
+                        Visibility="{Binding ShowGoals, Converter={StaticResource BoolToVis}}" />
                 <StackPanel VerticalAlignment="Center" Margin="0,0,8,0">
                     <TextBlock x:Name="StatusLine" Text="{Binding StatusText}" FontSize="11" TextTrimming="CharacterEllipsis"
                                Foreground="{DynamicResource TextPrimaryBrush}" />
@@ -1007,7 +1164,7 @@
         <Grid>
             <!-- ① Targets -->
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10,0,10,10"
-                          Visibility="{Binding ShowResults, Converter={StaticResource InverseBoolToVis}}">
+                          Visibility="{Binding ShowGoals, Converter={StaticResource BoolToVis}}">
                 <StackPanel>
                     <ItemsControl ItemsSource="{Binding GoalChips}" Focusable="False" Margin="0,0,0,6"
                                   Visibility="{Binding HasGoals, Converter={StaticResource BoolToVis}}">
@@ -1152,26 +1309,70 @@
                 </StackPanel>
             </ScrollViewer>
 
+            <ScrollViewer x:Name="AutoPlanScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="10,0,10,10"
+                          Visibility="{Binding ShowAutoList, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <CheckBox Content="9 人阵容" IsChecked="{Binding AutoNinePeople}" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,8" />
+                    <TextBlock Text="必带干员" Style="{StaticResource PlannerSectionTitle}" />
+                    <TextBox x:Name="AutoLockSearchBox" Height="30" Padding="7,3" FontSize="11" Background="{DynamicResource CardBackgroundBrush}" Foreground="{DynamicResource TextPrimaryBrush}" CaretBrush="{DynamicResource TextPrimaryBrush}" BorderBrush="{DynamicResource BorderBrush}" Text="{Binding LockSearchText, UpdateSourceTrigger=PropertyChanged}" Margin="0,5,0,5"
+                             KeyDown="OnLockSearchKeyDown" ToolTip="输入干员名称，回车添加。被 Ban 的必带保留选择，暂不参与规划。" />
+                    <ItemsControl ItemsSource="{Binding LockSuggestions}" Margin="0,0,0,5">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate><DataTemplate>
+                            <Button Content="{Binding Name}" Style="{StaticResource PlannerGhostButton}" Margin="0,0,4,4"
+                                    Command="{Binding DataContext.LockOperatorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Name}" />
+                        </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl x:Name="AutoLockedOperatorsList" ItemsSource="{Binding LockedOperators}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate><DataTemplate>
+                            <Border Background="{DynamicResource AccentSoftBrush}" BorderBrush="{DynamicResource AccentBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="5,2" Margin="0,0,4,5">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                    <TextBlock Text="已 Ban" Foreground="{DynamicResource WarningTextBrush}" Margin="4,0,0,0" VerticalAlignment="Center"
+                                               Visibility="{Binding IsUnavailable, Converter={StaticResource BoolToVis}}" />
+                                    <Button Content="×" Style="{StaticResource PlannerLinkButton}" Margin="4,0,0,0" Command="{Binding RemoveCommand}" ToolTip="取消必带" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock x:Name="AutoStatusTextBlock" Text="{Binding AutoStatusText}" Style="{StaticResource PlannerHint}" Margin="0,5,0,5" />
+                    <ProgressBar IsIndeterminate="True" Height="2" Foreground="{DynamicResource AccentBrush}" Background="Transparent" Margin="0,0,0,8"
+                                 Visibility="{Binding IsAutoBusy, Converter={StaticResource BoolToVis}}" />
+                    <TextBlock Text="叠层数为普通特质的理论估算，未计站位、装备及实际战斗收益。" Style="{StaticResource PlannerHint}" Margin="0,0,0,8" />
+                    <ItemsControl x:Name="AutoPlansList" ItemsSource="{Binding AutoPlans}" ItemTemplate="{StaticResource AutoPlanCardTemplate}" />
+                </StackPanel>
+            </ScrollViewer>
+
             <!-- ② Results -->
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10,0,10,10"
-                          Visibility="{Binding ShowResults, Converter={StaticResource BoolToVis}}">
+                          Visibility="{Binding ShowResultsPanel, Converter={StaticResource BoolToVis}}">
                 <Grid>
                 <!-- 道中路线 of one candidate -->
-                <StackPanel Visibility="{Binding ShowRoute, Converter={StaticResource BoolToVis}}">
+                <StackPanel Visibility="{Binding ShowRouteView, Converter={StaticResource BoolToVis}}">
+                    <TextBlock x:Name="AutoRouteHeading" Text="{Binding RouteTitle}" FontSize="13" FontWeight="Bold" TextWrapping="Wrap" Margin="0,0,0,6"
+                               Foreground="{DynamicResource TextPrimaryBrush}" Visibility="{Binding RouteFromAuto, Converter={StaticResource BoolToVis}}" />
                     <DockPanel Margin="0,0,0,10">
                         <Button DockPanel.Dock="Left" Style="{StaticResource RowIconButton}" Tag="{StaticResource IconBack}" Width="28" Height="28"
                                 Margin="0,0,8,0" ToolTip="返回方案" Command="{Binding CloseRouteCommand}" />
                         <Button DockPanel.Dock="Right" Content="追踪路线" Style="{StaticResource PlannerPrimaryButton}" Height="28" Padding="11,0" Margin="6,0,0,0"
                                 Command="{Binding TrackRouteCommand}"
-                                ToolTip="把整条路线加入追踪：大成干员绿色标记，过渡干员橙色标记（含后期叠层用的干员）" />
-                        <Button DockPanel.Dock="Right" Content="保存" Style="{StaticResource PlannerGhostButton}" Height="28" Margin="6,0,0,0"
+                                ToolTip="把整条路线加入追踪：成型阵容干员绿色标记，过渡干员橙色标记（含后期叠层用的干员）" />
+                        <Button DockPanel.Dock="Right" Content="{Binding SaveRouteLabel}" Style="{StaticResource PlannerGhostButton}" Height="28" Margin="6,0,0,0"
                                 Command="{Binding SaveRouteCommand}"
-                                ToolTip="存进“我的阵容”：前期、中期，大成存为后期，后期叠层用的叠层手放进挂件" />
+                                ToolTip="保存五阶段阵容；自动路线同时保留生成背景和运营建议，资金与持有记录按当前局刷新" />
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{Binding RouteTitle}" FontSize="13" FontWeight="Bold" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock Text="{Binding RouteTitle}" Visibility="{Binding RouteFromAuto, Converter={StaticResource InverseBoolToVis}}" FontSize="13" FontWeight="Bold" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextPrimaryBrush}" />
                             <TextBlock Text="{Binding RouteSubtitle}" Style="{StaticResource PlannerHint}" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                     </DockPanel>
+                    <TextBlock Text="{Binding AutoRouteContext}" Style="{StaticResource PlannerHint}" Margin="0,0,0,8"
+                               Visibility="{Binding HasAutoRouteContext, Converter={StaticResource BoolToVis}}" />
+                    <Border Background="{DynamicResource SectionBackgroundBrush}" BorderBrush="{DynamicResource LineBrush}"
+                            BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,0,0,8"
+                            Visibility="{Binding HasAutoRouteNotice, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding AutoRouteNotice}" TextWrapping="Wrap" Foreground="{DynamicResource TextPrimaryBrush}" />
+                    </Border>
                     <Border CornerRadius="{DynamicResource CardCornerRadius}" BorderThickness="1" Padding="4,8,4,6" Margin="0,0,0,8"
                             Background="{DynamicResource CardBackgroundBrush}" BorderBrush="{DynamicResource LineBrush}">
                         <ItemsControl ItemsSource="{Binding RouteSteps}" ItemTemplate="{StaticResource RouteStepTemplate}" Focusable="False">
@@ -1199,7 +1400,7 @@
                                Visibility="{Binding IsRouteBusy, Converter={StaticResource BoolToVis}}" />
                     <ItemsControl x:Name="RouteStagesList" ItemsSource="{Binding RouteStages}" ItemTemplate="{StaticResource RouteStageTemplate}" Focusable="False" />
                 </StackPanel>
-                <StackPanel Visibility="{Binding ShowRoute, Converter={StaticResource InverseBoolToVis}}">
+                <StackPanel Visibility="{Binding ShowResultList, Converter={StaticResource BoolToVis}}">
                     <WrapPanel Margin="0,0,0,10">
                         <ItemsControl ItemsSource="{Binding GoalChips}" Focusable="False">
                             <ItemsControl.ItemsPanel>

@@ -1,0 +1,37 @@
+<!-- Added for Hongxue Stronghold Companion on 2026-11-16; see NOTICE. -->
+<Window x:Class="ASPAssistant.App.Windows.LineupStageWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="430" MinWidth="360" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStyle="None" WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="{DynamicResource PanelBackgroundBrush}" Foreground="{DynamicResource TextPrimaryBrush}">
+    <Border Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+        <DockPanel>
+            <Border DockPanel.Dock="Top" Style="{StaticResource DialogTitleBar}" MouseLeftButtonDown="OnTitleBarDrag">
+                <DockPanel><Button DockPanel.Dock="Right" Tag="{StaticResource IconClose}" Style="{StaticResource DialogCloseButton}" Click="OnCancel" ToolTip="关闭" />
+                    <TextBlock x:Name="StageTitle" Style="{StaticResource DialogTitleText}" />
+                </DockPanel>
+            </Border>
+            <Border DockPanel.Dock="Bottom" Style="{StaticResource DialogFooter}">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="StageCancelButton" Content="取消" Style="{StaticResource DialogSecondaryButton}" Margin="0,0,8,0" Click="OnCancel" IsCancel="True" />
+                    <Button x:Name="StageSaveButton" Content="确定" Style="{StaticResource DialogPrimaryButton}" Click="OnSave" IsDefault="True" />
+                </StackPanel>
+            </Border>
+            <StackPanel Margin="18,14,18,16">
+                <StackPanel x:Name="StageRoundPanel">
+                    <TextBlock Text="回合范围（可留空）" Foreground="{DynamicResource TextPrimaryBrush}" />
+                    <Grid Margin="0,7,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="32" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <ComboBox x:Name="StageStartBox" MinHeight="30" SelectionChanged="OnRoundsChanged" />
+                        <TextBlock Grid.Column="1" Text="—" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <ComboBox x:Name="StageEndBox" Grid.Column="2" MinHeight="30" SelectionChanged="OnRoundsChanged" />
+                    </Grid>
+                </StackPanel>
+                <TextBlock Text="阶段名称" Foreground="{DynamicResource TextPrimaryBrush}" />
+                <TextBox x:Name="StageNameBox" MinHeight="32" Style="{StaticResource DialogTextBox}" Margin="0,7,0,8" />
+                <TextBlock x:Name="StageHint" Text="填写完整回合范围后自动命名；不填回合时，请输入名称。" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" />
+                <TextBlock x:Name="StageError" Margin="0,9,0,0" TextWrapping="Wrap" Foreground="{DynamicResource DangerBrush}" FontSize="11" />
+            </StackPanel>
+        </DockPanel>
+    </Border>
+</Window>

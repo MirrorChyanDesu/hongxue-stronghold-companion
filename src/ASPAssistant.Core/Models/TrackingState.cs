@@ -5,12 +5,18 @@ public sealed class TrackingState
 {
     public List<TrackingEntry> Entries { get; set; } = [];
     public List<TrackedLineup> Lineups { get; set; } = [];
+    public bool ShowAllStages { get; set; }
+    public List<string> PurchasedEquipment { get; set; } = [];
+    public string? StageLineupId { get; set; }
     public string? UpgradeReminderLineupId { get; set; }
     public List<UpgradeReminderProgress> UpgradeReminderProgress { get; set; } = [];
 }
 
 public sealed record TrackedLineup(string Id, string Name, bool Highlighted = true)
 {
+    public List<TrackedLineupStage> Stages { get; init; } = [];
+    public string SelectedStageId { get; init; } = "";
+    public bool AutomaticStageSwitch { get; init; }
     public List<TerminalUpgradeReminder> UpgradeReminders { get; init; } = [];
     public bool UpgradeNotificationsEnabled { get; init; }
 }
@@ -19,6 +25,7 @@ public sealed record TrackedLineup(string Id, string Name, bool Highlighted = tr
 public sealed record TrackingOrigin
 {
     public string LineupId { get; init; } = "";
+    public string StageId { get; init; } = "";
     public bool IsRoute { get; init; }
     public bool IsElite { get; init; }
     public TrackingRole Role { get; init; }
@@ -35,3 +42,9 @@ public sealed record TrackingOrigin
         CandidateEquipments = [.. entry.CandidateEquipments.Select(c => c.Clone())]
     };
 }
+
+public sealed record TrackedLineupStage(string Id, string Name, bool IsFinal, int? StartRound, int? EndRound)
+{
+    public List<string> RecommendedEquipments { get; init; } = [];
+}
+public sealed record TrackingStageChoice(string LineupId, string StageId, string Label);

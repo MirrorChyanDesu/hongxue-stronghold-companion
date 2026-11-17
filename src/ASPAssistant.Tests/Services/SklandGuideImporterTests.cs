@@ -22,7 +22,7 @@ public class SklandGuideImporterTests
     }
 
     [Fact]
-    public async Task OfficialExampleMapsEightEliteOperatorsAndStrategyWithoutInventingEquipmentOrRounds()
+    public async Task OfficialExamplePreservesCompleteStagesAndDoesNotAssignRecommendedEquipment()
     {
         var (operators, strategies) = await CatalogAsync();
         using var handler = new GuideHandler(Fixture);
@@ -37,12 +37,80 @@ public class SklandGuideImporterTests
         result.Lineup.MidSlots.Should().BeEmpty();
         result.Lineup.SupportSlots.Should().BeEmpty();
         result.Lineup.SourceUrl.Should().Be(Url);
-        result.Notice.Should().Contain("20 件").And.Contain("2 段").And.Contain("不自动追踪");
+        result.Notice.Should().Contain("10 件").And.Contain("2 段").And.Contain("不自动追踪");
+        result.Lineup.SklandGuide!.Stages.Should().HaveCount(3);
+        result.Lineup.SklandGuide.Stages.Select(s => s.Slots.Count).Should().Equal(8, 14, 14);
+        result.Lineup.SklandGuide.Stages[0].Slots[0].GuideLoadout!.SkillId.Should().Be("skchr_bluep_1");
+        result.Lineup.SklandGuide.Stages[0].OperationIdea.Should().NotBeEmpty();
         handler.Calls.Should().Be(1);
         handler.RequestUri!.Host.Should().Be("zonai.skland.com");
         handler.RequestUri.AbsolutePath.Should().Be("/web/v1/game/garrison/guide/info");
         handler.RequestUri.Query.Should().Contain("guideId=2120392178422509756");
         (await importer.ImportAsync(Url)).Lineup.Id.Should().NotBe(result.Lineup.Id);
+    }
+
+    [Fact]
+    public async Task ConsumablesAreExcludedInEveryStageExceptThePersonnelDocument()
+    {
+        var (operators, strategies) = await CatalogAsync();
+        var data = new JsonDataStore(Path.Combine(AppContext.BaseDirectory, "data"));
+        var (equipment, _) = await data.LoadEquipmentAsync();
+        var json = JsonNode.Parse(Fixture)!;
+        var tabs = json["data"]!["guide"]!["guide"]!["tabs"]!.AsArray();
+        var items = json["data"]!["seasonResourceMap"]!["act3autochess"]!["versionResourceMap"]!["V3_1"]!["items"]!.AsObject();
+        foreach (var tab in tabs)
+        {
+            var recommended = tab!["recItems"]!.AsArray();
+            recommended.Clear();
+            for (int i = 0; i < equipment.Count; i++)
+            {
+                var id = "all-equipment-" + i;
+                var item = equipment[i];
+                items[id] = new JsonObject { ["name"] = item.Name, ["effectDesc"] = "<@ba.vdown>" + item.Normal.EffectDescription + "</>" };
+                recommended.Add(new JsonObject { ["itemId"] = id });
+            }
+        }
+        using var http = new HttpClient(new GuideHandler(json.ToJsonString()));
+        var result = await new SklandGuideImporter(http, operators, strategies).ImportAsync(Url);
+        string[] excluded = ["盟约之币", "随身身份牌", "紧急调度券", "精打细算玩偶", "简易通讯机", "见钱眼开玩偶",
+            "驮兽储蓄罐", "定期存折", "寻呼模块", "一次性促销券", "信标", "拟态物质", "博士投影", "人事部记录", "投机骰子"];
+        foreach (var stage in result.Lineup.SklandGuide!.Stages)
+        {
+            stage.RecommendedEquipments.Should().Equal(equipment.Select(e => e.Name).Except(excluded));
+            stage.RecommendedEquipments.Should().Contain("人事部文档").And.Contain("卫戍推荐信").And.Contain("多功能补剂");
+        }
+        result.Lineup.SklandGuide.OriginalGuide!.Value.GetProperty("guide").GetProperty("tabs")[0]
+            .GetProperty("recItems").GetArrayLength().Should().Be(equipment.Count, "the original guide snapshot remains intact");
+        var editor = new LineupEditorViewModel(result.Lineup, operators, equipment, new CovenantCalculator(operators, [], new Dictionary<string, string>()));
+        var saved = editor.ToLineup();
+        var restored = JsonSerializer.Deserialize<Lineup>(JsonSerializer.Serialize(saved))!;
+        restored.SklandGuide!.Stages.Should().OnlyContain(s => s.RecommendedEquipments.Contains("人事部文档")
+            && !s.RecommendedEquipments.Intersect(excluded).Any());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task NullBondAnnotationsPreserveTheWholeStageAndOtherPages(int index)
+    {
+        var (operators, strategies) = await CatalogAsync();
+        using var originalHttp = new HttpClient(new GuideHandler(Fixture));
+        var original = await new SklandGuideImporter(originalHttp, operators, strategies).ImportAsync(Url);
+        var json = JsonNode.Parse(Fixture)!;
+        json["data"]!["guide"]!["guide"]!["tabs"]![index]!["activeBonds"] = null;
+        using var handler = new GuideHandler(json.ToJsonString());
+        using var http = new HttpClient(handler);
+        var result = await new SklandGuideImporter(http, operators, strategies).ImportAsync(Url);
+        var stages = result.Lineup.SklandGuide!.Stages;
+        stages.Should().HaveCount(original.Lineup.SklandGuide!.Stages.Count);
+        stages[index].ActiveCovenants.Should().BeEmpty();
+        stages[index].Slots.Should().BeEquivalentTo(original.Lineup.SklandGuide.Stages[index].Slots);
+        stages[index].RecommendedEquipments.Should().Equal(original.Lineup.SklandGuide.Stages[index].RecommendedEquipments);
+        stages[index].OperationIdea.Should().Be(original.Lineup.SklandGuide.Stages[index].OperationIdea);
+        foreach (int other in Enumerable.Range(0, stages.Count).Where(i => i != index))
+            stages[other].ActiveCovenants.Should().Equal(original.Lineup.SklandGuide.Stages[other].ActiveCovenants);
+        handler.Calls.Should().Be(1);
     }
 
     [Theory]
@@ -76,6 +144,7 @@ public class SklandGuideImporterTests
     [InlineData("tierMismatch")]
     [InlineData("unknownStrategy")]
     [InlineData("unsupportedElite")]
+    [InlineData("invalidBonds")]
     public async Task UnsupportedResponsesNeverReturnAPartialDraft(string change)
     {
         var (operators, strategies) = await CatalogAsync();
@@ -98,6 +167,7 @@ public class SklandGuideImporterTests
             case "tierMismatch": resource["chars"]!["char_129_bluep"]!["shopLevel"] = 1; break;
             case "unknownStrategy": strategies.Clear(); break;
             case "unsupportedElite": chars[0]!["mergeLevel"] = 2; break;
+            case "invalidBonds": tabs[1]!["activeBonds"] = "invalid"; break;
         }
         using var handler = new GuideHandler(json.ToJsonString());
         using var http = new HttpClient(handler);
@@ -109,61 +179,36 @@ public class SklandGuideImporterTests
     [InlineData(10)]
     [InlineData(11)]
     [InlineData(12)]
+    [InlineData(15)]
     [InlineData(20)]
-    public async Task CandidatesUseTierPhasesOnlyAboveNineAndSurviveEditingAndTracking(int count)
+    public async Task AllFinalMembersReachTrackingWithinFifteenSlotsAndOverflowRequiresRemoval(int count)
     {
         var (operators, strategies) = await CatalogAsync();
         var candidates = Enumerable.Range(0, 4).SelectMany(index => Enumerable.Range(1, 6)
             .Select(tier => operators.Where(x => x.Tier == tier && x.RequiredStrategyId.Length == 0 && !x.IsCustom)
                 .ElementAt(index))).Take(count).ToArray();
-        using var handler = new GuideHandler(CandidateGuide(candidates));
-        using var http = new HttpClient(handler);
+        using var http = new HttpClient(new GuideHandler(CandidateGuide(candidates)));
         var result = await new SklandGuideImporter(http, operators, strategies).ImportAsync(Url);
-        result.Lineup.EarlySlots.Select(s => s.OperatorName).Should()
-            .Equal(candidates.Where(op => count > 9 && op.Tier <= 2).Select(op => op.Name));
-        result.Lineup.MidSlots.Select(s => s.OperatorName).Should()
-            .Equal(candidates.Where(op => count > 9 && op.Tier is 3 or 4).Select(op => op.Name));
-        result.Lineup.Slots.Select(s => s.OperatorName).Should()
-            .Equal(candidates.Where(op => count <= 9 || op.Tier >= 5).Select(op => op.Name));
-        var allSlots = result.Lineup.EarlySlots.Concat(result.Lineup.MidSlots).Concat(result.Lineup.Slots).ToArray();
-        allSlots.Should().HaveCount(count);
-        foreach (var slot in allSlots)
-            slot.IsElite.Should().Be(Array.FindIndex(candidates, op => op.Name == slot.OperatorName) % 2 == 1);
-        if (count > 9) result.Notice.Should().Contain("按本数分组").And.Contain("全部保留");
-        var calculator = new CovenantCalculator(operators, [], new Dictionary<string, string>());
-        var editor = new LineupEditorViewModel(result.Lineup, operators, [], calculator);
-        editor.ValidationError.Should().BeEmpty();
-        editor.Reset();
-        var saved = editor.ToLineup();
-        saved.EarlySlots.Select(s => s.OperatorName).Should().Equal(result.Lineup.EarlySlots.Select(s => s.OperatorName));
-        saved.MidSlots.Select(s => s.OperatorName).Should().Equal(result.Lineup.MidSlots.Select(s => s.OperatorName));
-        saved.Slots.Select(s => s.OperatorName).Should().Equal(result.Lineup.Slots.Select(s => s.OperatorName));
-        saved.SourceUrl.Should().Be(Url);
-        var tracking = new TrackingViewModel();
-        tracking.TrackLineup(saved);
-        tracking.TrackedOperators.Select(e => e.Name).Should().BeEquivalentTo(candidates.Select(op => op.Name));
-    }
-
-    [Theory]
-    [InlineData(1, LineupPhase.前期)]
-    [InlineData(3, LineupPhase.中期)]
-    [InlineData(5, LineupPhase.后期)]
-    public async Task APhaseAboveNineKeepsEveryCandidateAndStillRequiresAdjustment(int tier, LineupPhase phase)
-    {
-        var (operators, strategies) = await CatalogAsync();
-        var candidates = operators.Where(op => op.Tier == tier && op.RequiredStrategyId.Length == 0).Take(10).ToArray();
-        using var handler = new GuideHandler(CandidateGuide(candidates));
-        using var http = new HttpClient(handler);
-        var result = await new SklandGuideImporter(http, operators, strategies).ImportAsync(Url);
-        result.Notice.Should().Contain("单个阶段超过 9 人");
-        var editor = new LineupEditorViewModel(result.Lineup, operators, [], new CovenantCalculator(operators, [], new Dictionary<string, string>()));
-        editor.FilledCount(phase).Should().Be(10);
-        editor.ValidationError.Should().Contain(phase.ToString()).And.Contain("9");
-        editor.SelectPhase(phase);
-        editor.SetSlotOperator(0, "");
-        editor.ValidationError.Should().BeEmpty();
-        editor.Reset();
-        editor.FilledCount(phase).Should().Be(10);
+        var final = result.Lineup.SklandGuide!.Stages.Single(s => s.IsFinal);
+        final.Slots.Select(s => s.OperatorName).Should().Equal(candidates.Select(o => o.Name));
+        final.Slots.Should().OnlyContain(s => !s.IsReserve);
+        result.Lineup.EarlySlots.Should().BeEmpty(); result.Lineup.MidSlots.Should().BeEmpty();
+        var vm = new LineupEditorViewModel(result.Lineup, operators, [], new CovenantCalculator(operators, [], new Dictionary<string, string>()));
+        vm.Slots.Should().HaveCount(Math.Max(15, count));
+        if (count > 15)
+        {
+            vm.ValidationError.Should().Contain("15");
+            vm.ToLineup().Slots.Should().HaveCount(count, "overflow must never be silently truncated");
+            for (int i = count - 1; i >= 15; i--) vm.SetSlotOperator(i, "");
+        }
+        vm.ValidationError.Should().BeEmpty();
+        var saved = vm.ToLineup();
+        saved.SklandGuide!.Stages.Single(s => s.IsFinal).Slots.Should().HaveCount(Math.Min(count, 15));
+        saved.SklandGuide.Stages.Skip(1).Select(s => s.Slots.Count).Should().Equal(14, 14);
+        var tracking = new TrackingViewModel(); tracking.TrackLineup(saved);
+        tracking.ActiveEntries.Where(e => e.Type == TrackingType.Operator).Select(e => e.Name).Should().BeEquivalentTo(candidates.Take(15).Select(o => o.Name));
+        vm.Reset();
+        vm.Slots.Count(s => s.OperatorName.Length > 0).Should().Be(count);
     }
 
     [Theory]
@@ -182,7 +227,7 @@ public class SklandGuideImporterTests
         using var handler = new GuideHandler(json.ToJsonString());
         using var http = new HttpClient(handler);
         var result = await new SklandGuideImporter(http, operators, strategies).ImportAsync(Url);
-        result.Lineup.Slots.Should().Contain(x => x.OperatorName == custom.Name);
+        result.Lineup.SklandGuide!.Stages.Single(s => s.IsFinal).Slots.Should().Contain(x => x.OperatorName == custom.Name);
         result.Notice.Should().Contain(custom.Name).And.Contain("不会修改自选名单");
         custom.IsSelectedCustom.Should().BeFalse();
     }

@@ -14,6 +14,7 @@ public partial class CustomOperatorSelectionWindow : Window
     public CustomOperatorSelectionWindow(IEnumerable<Operator> candidates)
     {
         InitializeComponent();
+        WindowUiScale.PrepareCentered(this);
         foreach (var op in candidates.OrderBy(o => o.Name, StringComparer.CurrentCulture))
         {
             var name = new TextBlock { Text = op.Name, FontSize = 12, FontWeight = FontWeights.Bold };

@@ -7,14 +7,28 @@ namespace ASPAssistant.Core.Models;
 public sealed record RouteStageDefinition(string Name, int TerminalLevel, int MaxTier, int TripleSlots, int People)
 {
     /// <summary>
-    /// A stacking lineup (后期, six-terminal 叠层): keeps the 大成 covenants active and fields as many stackers for them as
-    /// possible; swapped for the boss lineup before the boss fight. Its people count follows the 大成 lineup.
+    /// A stacking lineup (后期, six-terminal 叠层): keeps the 成型阵容 covenants active and fields as many stackers for them as
+    /// possible; swapped for the boss lineup before the boss fight. Its people count follows the 成型阵容 lineup.
     /// </summary>
     public bool Stacking { get; init; }
 
     /// <summary>
-    /// Default stages, modelled on the common “公式化运营” guides: 开局 → 前期 → 中期 (四本对对碰) → 后期 (六本叠层) → 大成.
-    /// 大成 (the boss lineup) is the chosen final lineup itself and is not part of this list.
+    /// 自动规划 “先小后大”: the stage builds these 小盟约 instead of the route's goals (the 本家 waits for the
+    /// terminal level that offers its stackers) and does not pursue other core covenants. Null = the route's
+    /// goals; an empty list = whichever 小盟约 are strongest. Ignored by a <see cref="Stacking"/> stage.
+    /// </summary>
+    public IReadOnlyList<PlannerGoal>? SmallGoals { get; init; }
+
+    /// <summary>
+    /// Covenants the stage has to reach as far as its shop allows (自动规划: the 本家 in every 先大后小 stage and
+    /// in the 成型 stage of 先小后大). A missing member weighs more than any stacker or 小盟约.
+    /// Ignored by a <see cref="Stacking"/> stage, which already holds the route's goals at their planned counts.
+    /// </summary>
+    public IReadOnlyList<PlannerGoal> Required { get; init; } = [];
+
+    /// <summary>
+    /// Default stages, modelled on the common “公式化运营” guides: 开局 → 前期 → 中期 (四本对对碰) → 后期 (六本叠层) → 成型阵容.
+    /// 成型阵容 (the boss lineup) is the chosen final lineup itself and is not part of this list.
     /// </summary>
     public static IReadOnlyList<RouteStageDefinition> Defaults { get; } =
     [
@@ -46,7 +60,7 @@ public static class RouteStageNames
 
 public sealed class RouteRequest
 {
-    /// <summary>The 大成 lineup the route leads to (normally a planner result).</summary>
+    /// <summary>The 成型阵容 lineup the route leads to (normally a planner result).</summary>
     public required PlannedLineup Final { get; init; }
     public IReadOnlyList<PlannerGoal> Goals { get; init; } = [];
     public IReadOnlySet<string> BannedCovenants { get; init; } = new HashSet<string>();
@@ -57,9 +71,9 @@ public sealed class RouteRequest
 
 public enum RouteOperatorRole
 {
-    /// <summary>Stays until 大成 (part of the final lineup).</summary>
+    /// <summary>Stays until 成型阵容 (part of the final lineup).</summary>
     Final,
-    /// <summary>Only used on the way; replaced before 大成.</summary>
+    /// <summary>Only used on the way; replaced before 成型阵容.</summary>
     Transition,
 }
 
@@ -69,7 +83,7 @@ public sealed record RouteOperator(string Name, int Tier, string IconPath, Route
     public bool ViaTriple { get; init; }
     /// <summary>Not in the previous stage.</summary>
     public bool IsNew { get; init; }
-    /// <summary>Planned transformation (大成 only).</summary>
+    /// <summary>Planned transformation (成型阵容 only).</summary>
     public string? TransformedCovenant { get; init; }
     public IReadOnlyList<string> Covenants { get; init; } = [];
     public bool IsTank { get; init; }
@@ -84,9 +98,9 @@ public sealed record RouteCovenantStatus(string Name, int Count, int Target, int
 public sealed record RouteStageSummary(int Points, int Tanks, int Healers, bool HealingCovenant, int Stackers,
     IReadOnlyList<string> Warnings)
 {
-    /// <summary>Estimated layers per round stacked on covenants the 大成 lineup activates.</summary>
+    /// <summary>Estimated layers per round stacked on covenants the 成型阵容 lineup activates.</summary>
     public double FinalLayers { get; init; }
-    /// <summary>Per operator: estimated layers per round on 大成 covenants (stackers and amplifiers only).</summary>
+    /// <summary>Per operator: estimated layers per round on 成型阵容 covenants (stackers and amplifiers only).</summary>
     public IReadOnlyDictionary<string, double> OperatorLayers { get; init; } = new Dictionary<string, double>();
 }
 
@@ -105,7 +119,7 @@ public sealed class PlannedRoute
 
     /// <summary>
     /// Terminal level from which a stage is behind the player: the first higher terminal level of a later stage
-    /// (开局 → 3, 前期 → 4, 中期 → 6). 0 = never (后期, 大成).
+    /// (开局 → 3, 前期 → 4, 中期 → 6). 0 = never (后期, 成型阵容).
     /// </summary>
     public int ExpiresAt(int stageIndex)
     {

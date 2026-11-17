@@ -28,6 +28,7 @@ public partial class LineupEditorWindow : Window
         _strategies = strategies;
         _operatorByName = vm.AllOperators.GroupBy(o => o.Name).ToDictionary(g => g.Key, g => g.First());
         InitializeComponent();
+        WindowUiScale.PrepareCentered(this);
         UpgradeNotificationsToggle.DataContext = vm;
         UpgradeLevelBox.ItemsSource = Enumerable.Range(2, 5).ToList();
         UpgradeLevelBox.ItemStringFormat = "{0}级";
@@ -37,17 +38,13 @@ public partial class LineupEditorWindow : Window
         {
             SourcePanel.Visibility = Visibility.Visible;
             SourceUrlBox.Text = vm.SourceUrl;
-            ImportNoticeText.Text = "来自官方攻略；推荐装备与回合讲解请查看原文。";
+            ImportNoticeText.Text = vm.HasGuide ? "攻略各阶段、推荐装备、技能、模组与讲解已保留。追踪页可手动选择阶段，或开启按回合自动切换；每阶段有 15 个干员格，填入的干员均计入阶段需求。" : "来自官方攻略；推荐装备与回合讲解请查看原文。";
         }
-        foreach (var phase in Enum.GetValues<LineupPhase>())
+        if (_vm.HasGuide)
         {
-            var button = new Button { Style = (Style)FindResource("PhaseSegment"), DataContext = phase };
-            button.Click += (_, _) =>
-            {
-                _vm.SelectPhase(phase);
-                RefreshEditor();
-            };
-            PhaseTabs.Children.Add(button);
+            FillTargetsButton.Content = "按成型阵容填写";
+            ((DockPanel)TargetCovenantPanel.Parent).Children.Remove(TargetCovenantPanel);
+            ((StackPanel)EditorStageScroll.Content).Children.Insert(0, TargetCovenantPanel);
         }
         LineupNameBox.Text = _vm.Name;
         RefreshEditor();
@@ -60,23 +57,7 @@ public partial class LineupEditorWindow : Window
     private void RefreshEditor()
     {
         if (LineupNameBox.Text != _vm.Name) LineupNameBox.Text = _vm.Name;
-        foreach (Button button in PhaseTabs.Children)
-        {
-            var phase = (LineupPhase)button.DataContext;
-            var count = _vm.FilledCount(phase);
-            button.Content = new TextBlock
-            {
-                Inlines =
-                {
-                    new System.Windows.Documents.Run(phase.ToString()),
-                    new System.Windows.Documents.Run(count > 0 ? $" {count}" : "")
-                    {
-                        FontFamily = (FontFamily)FindResource("NumberFontFamily"), FontSize = 11
-                    }
-                }
-            };
-            button.Tag = _vm.CurrentPhase == phase ? "active" : null;
-        }
+        RefreshPhaseTabs();
         var chosen = ChosenStrategies.ToList();
         StrategyTabText.Text = chosen.Count > 0 ? chosen.Count.ToString() : "";
         StrategyTabIcons.Children.Clear();
@@ -91,6 +72,8 @@ public partial class LineupEditorWindow : Window
         }
         StrategyTabIcons.Visibility = chosen.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         TitleMeta.Text = _vm.Name;
+        RefreshSourcePage();
+        RefreshGuideContent();
         BuildCards();
         RefreshTargets();
         RefreshUpgradeReminderChips();
@@ -321,6 +304,7 @@ public partial class LineupEditorWindow : Window
         var card = Card(highlight: isCore);
         var stack = new StackPanel();
         stack.Children.Add(Header(slotIndex, slot, isCore));
+        AddGuideSlotControls(stack, slotIndex, slot);
 
         // 2 equipment tiles + the transformation tile
         var transformations = _vm.EquipmentRules.Transformations(slot);
@@ -442,14 +426,14 @@ public partial class LineupEditorWindow : Window
         replace.Click += (_, _) => PickOperator(slotIndex);
         menu.Items.Add(replace);
         var copy = new MenuItem { Header = "复制到" };
-        foreach (var phase in Enum.GetValues<LineupPhase>().Where(p => p != _vm.CurrentPhase))
+        foreach (var phase in _vm.PhaseLabels.Keys.Where(p => p != _vm.CurrentPhase))
         {
-            var target = new MenuItem { Header = phase.ToString() };
+            var target = new MenuItem { Header = _vm.PhaseLabels[phase] };
             target.Click += (_, _) =>
             {
                 var copied = _vm.CopySlotToPhase(slotIndex, phase);
                 RefreshEditor();
-                EditorHint.Text = copied ? $"{slot.OperatorName}已复制到{phase}" : $"{phase}已满，没有复制";
+                EditorHint.Text = copied ? $"{slot.OperatorName}已复制到{_vm.PhaseLabels[phase]}" : $"{_vm.PhaseLabels[phase]}已满，没有复制";
             };
             copy.Items.Add(target);
         }
@@ -573,6 +557,7 @@ public partial class LineupEditorWindow : Window
         }
         top.Children.Add(title);
         stack.Children.Add(top);
+        AddGuideSlotControls(stack, slotIndex, slot);
 
         // One row each: the tiles share the width instead of wrapping onto a second line
         var capacity = LineupEquipmentService.Capacity(slot);
@@ -751,11 +736,14 @@ public partial class LineupEditorWindow : Window
         StrategyEmpty.Visibility = StrategyList.Children.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
         var error = _vm.ValidationError;
+        SaveErrorText.Text = error;
+        SaveErrorText.Visibility = error.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         WarningIcon.Visibility = error.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         WarningIcon.SetResourceReference(Shape.StrokeProperty, "TransitionTextBrush");
         var empty = LineupEditorViewModel.MaxSlots - _vm.FilledSlotCount;
         EditorHint.Text = error.Length > 0 ? error
-            : empty > 0 && _vm.FilledSlotCount > 0 ? $"{_vm.CurrentPhase}还有 {empty} 个空位" : $"正在编辑{_vm.CurrentPhase} · 列表预览与追踪使用后期阵容";
+            : _vm.HasGuide ? $"{_vm.PhaseLabels[_vm.CurrentPhase]} · {_vm.FilledSlotCount} / {LineupEditorViewModel.MaxSlots} 人；追踪使用对应阶段的全部干员"
+            : empty > 0 && _vm.FilledSlotCount > 0 ? $"{_vm.PhaseLabels[_vm.CurrentPhase]}还有 {empty} 个空位" : $"正在编辑{_vm.PhaseLabels[_vm.CurrentPhase]} · 列表预览与追踪使用成型阵容";
         EditorHint.ToolTip = error.Length > 0 ? error : null;
         EditorHint.SetResourceReference(TextBlock.ForegroundProperty, error.Length > 0 ? "TransitionTextBrush" : "TextSecondaryBrush");
     }
@@ -806,7 +794,7 @@ public partial class LineupEditorWindow : Window
         box.Children.Add(track);
         box.ToolTip = _vm.CurrentPhase == LineupPhase.后期
             ? $"{state.Label}：需要 {state.Needed} 人，后期 {state.Count} 人"
-            : $"{state.Label}：需要 {state.Needed} 人，后期 {state.Count} 人，{_vm.CurrentPhase} {phaseCount} 人";
+            : $"{state.Label}：需要 {state.Needed} 人，后期 {state.Count} 人，{_vm.PhaseLabels[_vm.CurrentPhase]} {phaseCount} 人";
         return box;
     }
 
@@ -953,7 +941,7 @@ public partial class LineupEditorWindow : Window
     {
         var current = _vm.Slots[slotIndex].OperatorName;
         var context = new OperatorPickerContext(
-            $"{_vm.CurrentPhase} · 第 {slotIndex + 1} 位", current,
+            $"{_vm.PhaseLabels[_vm.CurrentPhase]} · 第 {slotIndex + 1} 位", current,
             _vm.Slots.Where((s, i) => i != slotIndex && s.OperatorName.Length > 0).Select(s => s.OperatorName).ToHashSet(),
             _vm.CountsWith(slotIndex, ""), name => _vm.CountsWith(slotIndex, name), _vm.TargetStates, _vm.AllCovenants);
         // 暴躁铁皮 has its own card (added with the strategy), so it is not offered for the 9 places

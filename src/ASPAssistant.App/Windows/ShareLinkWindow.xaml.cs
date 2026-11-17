@@ -15,6 +15,7 @@ public partial class ShareLinkWindow : Window
     public ShareLinkWindow(string lineupName, string url, Action<string> copyText)
     {
         InitializeComponent();
+        WindowUiScale.PrepareCentered(this);
         _isOfficialGuide = SklandGuideImporter.IsOfficialGuideUrl(url);
         LinkBox.Text = _isOfficialGuide ? url : $"<{lineupName}> {url}";
         if (_isOfficialGuide)

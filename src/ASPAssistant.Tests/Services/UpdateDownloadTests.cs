@@ -13,21 +13,29 @@ namespace ASPAssistant.Tests.Services;
 public class UpdateDownloadTests
 {
     [Theory]
-    [InlineData("", false)]
-    [InlineData("win-x64", false)]
-    [InlineData("hongxue-stronghold-companion-v99.0.0-win-x64", false)]
-    [InlineData("", true)]
-    [InlineData("hongxue-stronghold-companion-v99.0.0-win-x64", true)]
-    public async Task LocalFeed_ChecksDownloadsVerifiesAndPreparesWithoutLaunching(string folder, bool wrongHash)
+    [InlineData("", false, "ASPAssistant.App.exe")]
+    [InlineData("win-x64", false, "ASPAssistant.App.exe")]
+    [InlineData("hongxue-stronghold-companion-v99.0.0-win-x64", false, "ASPAssistant.App.exe")]
+    [InlineData("", true, "ASPAssistant.App.exe")]
+    [InlineData("hongxue-stronghold-companion-v99.0.0-win-x64", true, "ASPAssistant.App.exe")]
+    [InlineData("", false, "app/HongxueCompanion.exe")]
+    [InlineData("hongxue-stronghold-companion-v99.0.0-win-x64", false, "app/HongxueCompanion.exe")]
+    [InlineData("", false, "HongxueCompanion.exe")]
+    public async Task LocalFeed_ChecksDownloadsVerifiesAndPreparesWithoutLaunching(string folder, bool wrongHash, string executable)
     {
         using var zipStream = new MemoryStream();
         using (var zip = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
         {
             var prefix = folder.Length > 0 ? folder + "/" : "";
-            foreach (var name in new[] { "ASPAssistant.App.exe", "data/test.json", "runtimes/test.txt" })
+            foreach (var name in new[] { executable, Path.GetDirectoryName(executable) + "/data/test.json", Path.GetDirectoryName(executable) + "/runtimes/test.txt" })
             {
-                await using var writer = zip.CreateEntry(prefix + name).Open();
+                await using var writer = zip.CreateEntry(prefix + name.TrimStart('/')).Open();
                 await writer.WriteAsync(Encoding.UTF8.GetBytes("isolated download fixture; never executed"));
+            }
+            if (executable != "ASPAssistant.App.exe")
+            {
+                await using var writer = new StreamWriter(zip.CreateEntry(prefix + "update-layout.json").Open());
+                await writer.WriteAsync(System.Text.Json.JsonSerializer.Serialize(new { formatVersion = 1, executable }));
             }
         }
         var zipBytes = zipStream.ToArray();
@@ -91,7 +99,8 @@ public class UpdateDownloadTests
                 script.Should().Contain("$startupTimeout = 60").And.Contain("ASPA_UPDATE_STARTUP_RESULT");
                 var source = Path.Combine(job, "extracted", folder);
                 script.Should().Contain("$sourceDir = '" + source.Replace("'", "''") + "'");
-                File.Exists(Path.Combine(source, "ASPAssistant.App.exe")).Should().BeTrue();
+                File.Exists(Path.Combine(source, executable)).Should().BeTrue();
+                script.Should().Contain("$newExecutable = '" + executable + "'");
                 File.ReadAllBytes(service.PendingScriptPath!).Take(3).Should().Equal(new byte[] { 0xef, 0xbb, 0xbf });
             }
             await serving;

@@ -73,7 +73,7 @@ public partial class App : Application
 
             MessageBox.Show(
                 message,
-                "ASPAssistant 崩溃",
+                "鸿雪·卫戍助手崩溃",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
         };
@@ -97,7 +97,7 @@ public partial class App : Application
             }
             MessageBox.Show(
                 $"启动时发生错误，请将以下信息反馈给开发者：\n\n{args.Exception}",
-                "ASPAssistant 错误",
+                "鸿雪·卫戍助手错误",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             args.Handled = true;
@@ -146,7 +146,7 @@ public partial class App : Application
 
             MessageBox.Show(
                 message,
-                "ASPAssistant 错误",
+                "鸿雪·卫戍助手错误",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             Shutdown(1);
@@ -255,6 +255,14 @@ public partial class App : Application
             TrackMultipleLineups = await _settingsManager.LoadTrackMultipleLineupsAsync()
         };
         trackingVm.LoadState(trackingState);
+        var stageUpgrades = lineups.Where(l => trackingState.Lineups.Any(t => t.Id == l.Id && t.Stages.Count == 0)).ToList();
+        if (stageUpgrades.Count > 0)
+        {
+            File.Copy(Path.Combine(settingsDir, "tracking.json"), Path.Combine(settingsDir, $"tracking.pre-stages-{Guid.NewGuid():N}.bak"));
+            foreach (var lineup in stageUpgrades) trackingVm.ApplyTrackedLineup(lineup);
+            await _settingsManager.SaveTrackingStateAsync(trackingVm.CaptureState());
+        }
+
 
         var gameStateVm = new GameStateViewModel();
 
@@ -276,6 +284,7 @@ public partial class App : Application
         // so switching the tracked lineup updates markers without waiting for a new scan.
         var shopNames = operators.Where(o => o.RequiredStrategyId.Length == 0).Select(o => o.Name)
             .Concat(equipment.Select(e => e.Name)).Distinct().ToList();
+        var purchaseNames = shopNames.ToHashSet(StringComparer.Ordinal);
         var shopReader = new ShopReader(ocrEngine, shopNames) { Theme = gameTheme };
         // Covenant groups come from covenants.json (bondType), not from the operator roster:
         // a covenant with no operator in the local data set (a new season addition) must
@@ -309,8 +318,7 @@ public partial class App : Application
             AutomaticGameTheme = automaticGameTheme,
             AutomaticPurchaseTracking = await _settingsManager.LoadAutomaticPurchaseTrackingAsync(),
             BoardRecognizer = boardData is null ? null : new BoardRecognizer(boardData),
-            PurchaseTargets = () => Dispatcher.Invoke(() => (IReadOnlySet<string>)operators.Select(o => o.Name)
-                .Concat(trackingVm.TrackedEquipment.Where(e => !e.IsAcquired).Select(e => e.Name)).ToHashSet(StringComparer.Ordinal)),
+            PurchaseTargets = () => purchaseNames,
         };
 
         _windowTracker = new WindowTrackerService(
@@ -323,7 +331,9 @@ public partial class App : Application
             operatorVm, equipmentVm, trackingVm, gameStateVm, banVm, enemyVm,
             lineupVm, lineupShareService,
             operators, equipment, strategies, _settingsManager, gameTheme, sidePanelPosition,
-            new LineupPlanner(operators, covenantInfos), covenantInfos);
+            new LineupPlanner(operators, covenantInfos), covenantInfos, appearance: appearance,
+            closeBehavior: await _settingsManager.LoadMainWindowCloseBehaviorAsync());
+        sidePanel.InitGameStartSettings(await _settingsManager.LoadGameStartSettingsAsync());
         sidePanel.GameThemeChanged += theme => shopReader.Theme = theme;
         sidePanel.InitAutomaticGameTheme(automaticGameTheme);
         sidePanel.AutomaticGameThemeChanged += automatic => _ocrScanner.AutomaticGameTheme = automatic;
@@ -450,6 +460,8 @@ public partial class App : Application
         }
 
         // Wire window tracker → window positioning
+        sidePanel.Activated += (_, _) => UpdateOverlayPosition(false);
+        sidePanel.TopmostPreferenceChanged += () => UpdateOverlayPosition(false);
         sidePanel.Deactivated += (_, _) => Dispatcher.BeginInvoke(() => UpdateOverlayPosition(false));
         _windowTracker.GameWindowFocusChanged += _ => Dispatcher.Invoke(() => UpdateOverlayPosition(false));
         _windowTracker.GameWindowMoved += rect =>
@@ -604,8 +616,7 @@ public partial class App : Application
                 if (result.EnemyFaction is null)
                     enemyVm.RecognitionFailed("盟约已录入，本次敌人信息未完整读出，可点击“截屏录入”重试。");
                 sidePanel.ShowToast(result.EnemyFaction is null ? "盟约已录入，敌人信息可重新截屏录入" : "本局信息已录入");
-                // With saved lineups, the next thing to look at is which of them still work this run.
-                if (sidePanel.LineupVm.Lineups.Count > 0) sidePanel.ShowLineupsSegment(planner: false);
+                sidePanel.NavigateAfterGameStart();
             });
         };
 
@@ -708,12 +719,23 @@ public partial class App : Application
         }
         trackingVm.TrackedOperators.CollectionChanged += async (_, _) =>
         {
+            if (trackingVm.StageTargetsUpdating) return;
             RefreshOverlayTracking(trackingVm);
             await SaveTrackingAsync();
         };
         trackingVm.TrackedEquipment.CollectionChanged += async (_, _) =>
         {
+            if (trackingVm.StageTargetsUpdating) return;
             RefreshOverlayTracking(trackingVm);
+            await SaveTrackingAsync();
+        };
+        trackingVm.StageStateChanged += async () =>
+        {
+            if (_overlay is not null)
+            {
+                Core.GameState.GameStateUpdater.UpdateShopTracking(_lastShopItems, trackingVm.ActiveEntries.ToList());
+                _overlay.UpdateShopItems(_lastShopItems);
+            }
             await SaveTrackingAsync();
         };
         trackingVm.SourcesChanged += async () => await SaveTrackingAsync();

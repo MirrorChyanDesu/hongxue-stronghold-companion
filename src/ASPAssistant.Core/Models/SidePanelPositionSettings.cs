@@ -14,6 +14,7 @@ public sealed record SidePanelPositionSettings
     /// where the player leaves it.
     /// </summary>
     public bool FreeMovement { get; init; } = true;
+    public bool ForceTopmost { get; init; }
     public SidePanelPlacement? Placement { get; init; }
     public SidePanelOffset? FollowOffsetDip { get; init; }
 }

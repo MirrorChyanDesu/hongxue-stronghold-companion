@@ -8,22 +8,27 @@ namespace ASPAssistant.Tests.ViewModels;
 public class TrackingWorkflowTests
 {
     [Fact]
-    public void DirectLineupTracksFinalAndTransitionWithPhaseNamesButNoGuessedExpiry()
+    public void DirectLineupKeepsPhaseRequirementsSeparateWithoutGuessingExpiry()
     {
         var vm = new TrackingViewModel { DetectedTerminalLevel = 6 };
         vm.TrackLineup(new Lineup
         {
-            Slots = [new() { OperatorName = "大成", IsElite = true }],
+            Slots = [new() { OperatorName = "成型阵容", IsElite = true }],
             MidSlots = [new() { OperatorName = "中前期", Equipments = ["中期装备"] }],
-            EarlySlots = [new() { OperatorName = "大成" }, new() { OperatorName = "中前期", Equipments = ["前期装备"] }],
+            EarlySlots = [new() { OperatorName = "成型阵容" }, new() { OperatorName = "中前期", Equipments = ["前期装备"] }],
             SupportSlots = [new() { OperatorName = "挂件" }]
         });
         vm.TrackedOperators.Should().HaveCount(3);
-        vm.TrackedOperators.Single(e => e.Name == "大成").Should().Match<TrackingEntry>(e => e.Role == TrackingRole.Final && e.IsElite);
+        vm.TrackedOperators.Single(e => e.Name == "成型阵容").Should().Match<TrackingEntry>(e => e.Role == TrackingRole.Final && e.IsElite);
         var transition = vm.TrackedOperators.Single(e => e.Name == "中前期");
         transition.Role.Should().Be(TrackingRole.Transition);
         transition.Stages.Should().Be("前期 · 中期");
-        transition.Equipments.Should().Equal("中期装备");
+        transition.IsStageActive.Should().BeFalse();
+        transition.Origins.Select(o => o.Equipments.Single()).Should().Equal("前期装备", "中期装备");
+        vm.SelectStage(vm.StageChoices.Single(c => c.StageId == "mid"));
+        vm.TrackedOperators.Single(e => e.Name == "中前期").Equipments.Should().Equal("中期装备");
+        vm.SelectStage(vm.StageChoices.Single(c => c.StageId == "early"));
+        vm.TrackedOperators.Single(e => e.Name == "中前期").Equipments.Should().Equal("前期装备");
         vm.TrackedOperators.Single(e => e.Name == "挂件").Stages.Should().Be("挂件");
         vm.TrackedOperators.Should().OnlyContain(e => !e.IsExpired && e.ExpiresAt == 0);
     }
@@ -35,6 +40,7 @@ public class TrackingWorkflowTests
         vm.TrackLineup(new Lineup { EarlySlots = [new() { OperatorName = "角峰" }] });
         vm.TrackLineup(new Lineup { Slots = [new() { OperatorName = "角峰", IsElite = true, Equipments = ["盾牌"] }] });
         vm.TrackLineup(new Lineup { EarlySlots = [new() { OperatorName = "角峰", Equipments = ["过渡装备"] }] });
+        vm.SelectStage(vm.StageChoices.Single(c => c.LineupId == vm.SelectedStageChoice!.LineupId && c.StageId == "early"));
         var entry = vm.TrackedOperators.Should().ContainSingle().Which;
         entry.Role.Should().Be(TrackingRole.Final);
         entry.IsElite.Should().BeTrue();

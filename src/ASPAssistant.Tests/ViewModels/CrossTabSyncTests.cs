@@ -60,7 +60,7 @@ public class CrossTabSyncTests
     public void RemovingFinalSourceImmediatelyExpiresTheRemainingRouteTarget()
     {
         var vm = new TrackingViewModel { TrackMultipleLineups = true, DetectedTerminalLevel = 2 };
-        vm.TrackRoute(new PlannedRoute { Stages = [Stage("开局", 2, false, "角峰"), Stage("大成", 4, true, "隐现")] });
+        vm.TrackRoute(new PlannedRoute { Stages = [Stage("开局", 2, false, "角峰"), Stage("成型阵容", 4, true, "隐现")] });
         vm.TrackLineup(new Lineup { Id = "a", Slots = [new() { OperatorName = "角峰" }] });
         vm.DetectedTerminalLevel = 6;
         vm.ApplyTrackedLineup(new Lineup { Id = "a" });
@@ -77,7 +77,7 @@ public class CrossTabSyncTests
         var vm = new TrackingViewModel { TrackMultipleLineups = true };
         vm.LoadEntries([new() { Name = "角峰", Equipments = ["手动装备"] }]);
         vm.TrackLineup(new Lineup { Id = "a", Slots = [new() { OperatorName = "角峰", Equipments = ["阵容装备"] }] });
-        var route = new PlannedRoute { Stages = [Stage("大成", 6, true, "角峰")] };
+        var route = new PlannedRoute { Stages = [Stage("成型阵容", 6, true, "角峰")] };
         vm.TrackRoute(route);
         vm.TrackRoute(route);
         var restored = new TrackingViewModel { TrackMultipleLineups = true };
@@ -95,9 +95,9 @@ public class CrossTabSyncTests
     public void ManualAdditionToRouteRemainsAfterRouteRequirementsChange()
     {
         var vm = new TrackingViewModel { TrackMultipleLineups = true };
-        vm.TrackRoute(new PlannedRoute { Stages = [Stage("大成", 6, true, "角峰")] });
+        vm.TrackRoute(new PlannedRoute { Stages = [Stage("成型阵容", 6, true, "角峰")] });
         vm.AddTracking("角峰", TrackingType.Operator);
-        vm.TrackRoute(new PlannedRoute { Stages = [Stage("开局", 2, false, "角峰"), Stage("大成", 4, true, "隐现")] });
+        vm.TrackRoute(new PlannedRoute { Stages = [Stage("开局", 2, false, "角峰"), Stage("成型阵容", 4, true, "隐现")] });
         vm.DetectedTerminalLevel = 6;
         vm.TrackedOperators.Single(e => e.Name == "角峰").Role.Should().Be(TrackingRole.Final);
         vm.ActiveEntries.Should().Contain(e => e.Name == "角峰");
@@ -107,8 +107,8 @@ public class CrossTabSyncTests
     public void AddingAnotherRouteDoesNotDowngradeAnExistingFinalTarget()
     {
         var vm = new TrackingViewModel { TrackMultipleLineups = true };
-        vm.TrackRoute(new PlannedRoute { Stages = [Stage("大成", 6, true, "角峰")] });
-        var transition = new PlannedRoute { Stages = [Stage("开局", 2, false, "角峰"), Stage("大成", 4, true, "隐现")] };
+        vm.TrackRoute(new PlannedRoute { Stages = [Stage("成型阵容", 6, true, "角峰")] });
+        var transition = new PlannedRoute { Stages = [Stage("开局", 2, false, "角峰"), Stage("成型阵容", 4, true, "隐现")] };
         vm.TrackRoute(transition);
         vm.TrackRoute(transition);
         vm.DetectedTerminalLevel = 6;

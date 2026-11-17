@@ -10,6 +10,7 @@ public partial class ConfirmDialog : Window
     public ConfirmDialog(string title, string message, string okText = "确定", bool danger = false, bool okOnly = false, string cancelText = "取消")
     {
         InitializeComponent();
+        WindowUiScale.PrepareCentered(this);
         Title = title;
         TitleText.Text = title;
         MessageText.Text = message;

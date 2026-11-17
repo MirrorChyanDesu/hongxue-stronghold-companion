@@ -45,7 +45,7 @@ public partial class LineupPlannerView : UserControl
         switch (e.Key)
         {
             case Key.Enter:
-                vm.AddLocked(LockSearchBox.Text);
+                vm.AddLocked(((TextBox)sender).Text);
                 e.Handled = true;
                 break;
             case Key.Escape:

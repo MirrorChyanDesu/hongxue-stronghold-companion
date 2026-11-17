@@ -54,6 +54,7 @@ public partial class DeployView : UserControl
     private string? _locatedSearch;
     private bool _ownedOnly;
     private bool _extensionExpanded = true;
+    private bool _poolControlsUpdating;
     private bool _ready;
 
     // drag state
@@ -155,8 +156,18 @@ public partial class DeployView : UserControl
 
     private void OnTrackingPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(TrackingViewModel.ShowAllStages))
+        {
+            if (_ready && _page == Page.Pool) RefreshPool();
+            return;
+        }
+        if (e.PropertyName is nameof(TrackingViewModel.StageChoices) or nameof(TrackingViewModel.AutomaticStageSwitch))
+        {
+            if (_ready) RefreshPoolStageControls();
+            return;
+        }
         if (e.PropertyName == nameof(TrackingViewModel.TrackedOperators)) HookTracking();
-        if (e.PropertyName is nameof(TrackingViewModel.TrackedOperators) or nameof(TrackingViewModel.TerminalLevel))
+        if (e.PropertyName is nameof(TrackingViewModel.TrackedOperators) or nameof(TrackingViewModel.TerminalLevel) or nameof(TrackingViewModel.SelectedStageChoice))
             Dispatcher.BeginInvoke(() => { RefreshAll(); ScheduleReplan(); });
     }
 
@@ -167,12 +178,12 @@ public partial class DeployView : UserControl
     {
         if (_hooked is not null && _trackingHandler is not null) _hooked.CollectionChanged -= _trackingHandler;
         _hooked = _tracking?.TrackedOperators;
-        _trackingHandler = (_, _) => Dispatcher.BeginInvoke(() => { RefreshAll(); ScheduleReplan(); });
+        _trackingHandler = (_, _) => { if (_tracking?.StageTargetsUpdating != true) Dispatcher.BeginInvoke(() => { RefreshAll(); ScheduleReplan(); }); };
         if (_hooked is not null) _hooked.CollectionChanged += _trackingHandler;
     }
 
     private IReadOnlyList<DeployPoolGroup> Groups() =>
-        DeployPoolBuilder.Build(_tracking?.TrackedOperators ?? [], _operators, _state);
+        DeployPoolBuilder.Build(_tracking?.DisplayOperators ?? [], _operators, _state);
 
     /// <summary>Owned operators; a duplicated operator gives one candidate per copy (keys 冻河, 冻河#2…).</summary>
     private List<PlacementCandidate> Candidates() =>
@@ -312,7 +323,7 @@ public partial class DeployView : UserControl
         MapSourceText.Text = manual ? "手动" : stale ? "上次识别" : "自动";
         MapSourceDot.Fill = (Brush)FindResource(manual ? "TextSecondaryBrush" : stale ? "WarningBrush" : "SuccessBrush");
         MapThumb.Source = map is null ? null : Thumbnail(map.Id);
-        var finals = _tracking?.TrackedOperators.Where(e => e.Type == TrackingType.Operator && !e.IsTransition).ToList() ?? [];
+        var finals = _tracking?.TrackedOperators.Where(e => e.IsStageActive && e.Type == TrackingType.Operator && (!e.IsTransition || _tracking.StageChoices.Count > 0)).ToList() ?? [];
         var covs = finals.Select(e => _operators.GetValueOrDefault(e.Name)).Where(o => o is not null)
             .SelectMany(o => o!.CoreCovenants.Concat(o.AdditionalCovenants))
             .GroupBy(c => c).OrderByDescending(g => g.Count()).Take(2).Select(g => $"{g.Key} {g.Count()}");
@@ -1066,8 +1077,9 @@ public partial class DeployView : UserControl
     private void RefreshPool()
     {
         PoolGroups.Children.Clear();
+        PoolTrackedBody.Children.Clear();
+        RefreshPoolStageControls();
         var groups = Groups();
-        int owned = Candidates().Count;
         PoolHeaderMeta.Text = $"已获取 { _state.Owned.Distinct().Count()} 名 · 点击卡片切换获取，精锐按钮单独切换；右键调整数量";
         PoolSearchHint.Visibility = _poolQuery.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         var extItems = groups.Where(g => g.Kind == DeployPoolGroupKind.Extension).SelectMany(g => g.Items).ToList();
@@ -1076,6 +1088,8 @@ public partial class DeployView : UserControl
             _activeTier = extItems.Where(i => i.Owned).Select(i => (int?)i.Tier).Min() ?? extItems.Select(i => (int?)i.Tier).Min();
         if (groups.Count == 0)
         {
+            PoolTrackedCount.Text = "0/0";
+            PoolStageRow.Visibility = _tracking!.StageChoices.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             PoolGroups.Children.Add(new TextBlock
             {
                 Text = "还没有追踪的干员。先在阵容或规划页点“追踪”，也可以直接用“＋ 添加”。",
@@ -1088,9 +1102,17 @@ public partial class DeployView : UserControl
         bool Match(DeployPoolItem i) =>
             (!_ownedOnly || i.Owned)
             && (!searching || SearchMatch.Matches(_poolQuery, i.Name, i.Sub));
-        int shown = 0;
+        bool combineTracked = _tracking!.StageChoices.Count > 0 || _tracking.ShowAllStages;
+        var tracked = groups.Where(g => g.Kind == DeployPoolGroupKind.Final || combineTracked && g.Kind == DeployPoolGroupKind.Transition)
+            .SelectMany(g => g.Items).ToList();
+        PoolTrackedCount.Text = $"{tracked.Count(i => i.Owned)}/{tracked.Count}";
+        PoolStageRow.Visibility = _tracking.StageChoices.Count > 0 || tracked.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        var trackedShown = tracked.Where(Match).ToList();
+        AddCards(trackedShown, PoolTrackedBody);
+        int shown = trackedShown.Count;
         foreach (var g in groups)
         {
+            if (g.Kind == DeployPoolGroupKind.Final || combineTracked && g.Kind == DeployPoolGroupKind.Transition) continue;
             var items = g.Items.Where(Match).ToList();
             if (items.Count == 0) continue;
             shown += items.Count;
@@ -1114,7 +1136,7 @@ public partial class DeployView : UserControl
             if (g.Kind == DeployPoolGroupKind.Extension && !_extensionExpanded && !searching && !_ownedOnly) continue;
             if (g.Kind != DeployPoolGroupKind.Extension)
             {
-                AddCards(items);
+                AddCards(items, PoolGroups);
                 continue;
             }
             // 扩展池: a rail of tier tiles (people per tier, a dot when one is owned); each tile unfolds its tier.
@@ -1135,14 +1157,14 @@ public partial class DeployView : UserControl
                 bandHead.Children.Add(TierBadge(band.Key));
                 bandHead.Children.Add(Text($"{band.Count()} 人" + (searching ? "" : " · 共享盟约多的在前"), 10, "TextSecondaryBrush", margin: new Thickness(6, 0, 0, 0)));
                 PoolGroups.Children.Add(bandHead);
-                AddCards([.. band], animate: band.Key == _justOpenedTier);
+                AddCards([.. band], PoolGroups, animate: band.Key == _justOpenedTier);
             }
         }
         if (shown == 0)
             PoolGroups.Children.Add(Text(searching ? $"没有找到“{_poolQuery}”，可以用“＋ 添加”加入其他干员" : "还没有已拥有的干员", 11, "TextSecondaryBrush", margin: new Thickness(2, 6, 0, 0)));
     }
 
-    private void AddCards(IReadOnlyList<DeployPoolItem> items, bool animate = false)
+    private void AddCards(IReadOnlyList<DeployPoolItem> items, Panel target, bool animate = false)
     {
         var grid = new UniformGrid { Columns = 2 };
         foreach (var item in items)
@@ -1151,7 +1173,7 @@ public partial class DeployView : UserControl
             grid.Children.Add(card);
             if (animate) RiseIn(card, grid.Children.Count, dy: 4);
         }
-        PoolGroups.Children.Add(grid);
+        target.Children.Add(grid);
     }
 
     private Border TierBadge(int tier)
@@ -1355,6 +1377,45 @@ public partial class DeployView : UserControl
         if (_ready) RefreshPool();
     }
 
+    private void RefreshPoolStageControls()
+    {
+        _poolControlsUpdating = true;
+        bool stages = _tracking!.StageChoices.Count > 0;
+        PoolStageSelector.Visibility = stages ? Visibility.Visible : Visibility.Collapsed;
+        PoolStageTitle.Visibility = stages ? Visibility.Collapsed : Visibility.Visible;
+        PoolStageTitle.Text = _tracking.ShowAllStages ? "全程干员" : "成型阵容干员";
+        PoolAutomaticPanel.Visibility = stages ? Visibility.Visible : Visibility.Collapsed;
+        PoolStageSelector.ItemsSource = _tracking.StageChoices;
+        PoolStageSelector.SelectedItem = _tracking.SelectedStageChoice;
+        PoolAutomaticToggle.IsChecked = _tracking.AutomaticStageSwitch;
+        PoolAllStagesToggle.IsChecked = _tracking.ShowAllStages;
+        _poolControlsUpdating = false;
+    }
+
+    private void OnPoolStageChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_ready && !_poolControlsUpdating && PoolStageSelector.SelectedItem is TrackingStageChoice choice) _tracking!.SelectStage(choice);
+    }
+
+    private void OnPoolAutomaticChanged(object sender, RoutedEventArgs e)
+    {
+        if (_ready && !_poolControlsUpdating) _tracking!.SetAutomaticStageSwitch(PoolAutomaticToggle.IsChecked == true);
+    }
+
+    private void OnPoolAllStagesChanged(object sender, RoutedEventArgs e)
+    {
+        if (_ready && !_poolControlsUpdating) _tracking!.ShowAllStages = PoolAllStagesToggle.IsChecked == true;
+    }
+
+    private void OnTogglePoolTracked(object sender, RoutedEventArgs e)
+    {
+        bool open = PoolTrackedBody.Visibility != Visibility.Visible;
+        PoolTrackedBody.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+        PoolFoldIcon.Data = Geometry.Parse(open ? "M3,6 L8,11 L13,6" : "M6,3 L11,8 L6,13");
+        PoolFoldIcon.Width = open ? 11 : 7; PoolFoldIcon.Height = open ? 7 : 11;
+        PoolTrackedToggle.ToolTip = open ? "收起干员列表" : "展开干员列表";
+    }
+
     private void OnPoolFilterChanged(object sender, SelectionChangedEventArgs e)
     {
         _ownedOnly = PoolFilterList.SelectedIndex == 1;
@@ -1364,7 +1425,7 @@ public partial class DeployView : UserControl
     private void OnOwnCurrentStage(object sender, RoutedEventArgs e)
     {
         int level = _tracking?.TerminalLevel ?? 0;
-        foreach (var entry in _tracking?.TrackedOperators.Where(t => t.Type == TrackingType.Operator) ?? [])
+        foreach (var entry in _tracking?.TrackedOperators.Where(t => t.IsStageActive && t.Type == TrackingType.Operator) ?? [])
             if (!entry.ExpiredAt(level) && !_state.IsOwned(entry.Name)) _state.SetOwned(entry.Name, true);
         if (_locatedSearch is { } name) ClearLocatedSearchAfterAcquisition(name);
         _tracking?.SyncDeployPool();
@@ -1376,7 +1437,7 @@ public partial class DeployView : UserControl
     private void OnAddOther(object sender, RoutedEventArgs e)
     {
         var strategies = _operators.Values.Select(o => o.RequiredStrategyId).Where(s => s.Length > 0).ToHashSet();
-        var dlg = new OperatorPickerWindow(_operators.Values.ExceptBy(Groups().Where(g => g.Kind != DeployPoolGroupKind.Other).SelectMany(g => g.Items).Select(i => i.Name), o => o.Name), "", strategies) { Owner = Window.GetWindow(this) };
+        var dlg = new OperatorPickerWindow(_operators.Values.ExceptBy(Groups().Where(g => g.Kind != DeployPoolGroupKind.Other).SelectMany(g => g.Items).Select(i => i.Name).Concat(_tracking!.TrackedOperators.Select(e => e.Name)), o => o.Name), "", strategies) { Owner = Window.GetWindow(this) };
         dlg.ShowDialog();
         if (dlg.Result is not { Length: > 0 } name) return;
         bool tracked = _tracking?.TrackedOperators.Any(t => t.Name == name) == true;
@@ -1404,8 +1465,7 @@ public partial class DeployView : UserControl
                 _state.SetOwned(name, true);
                 changed = true;
             }
-            else if (_tracking!.TrackedEquipment.FirstOrDefault(e => e.Name == name) is { IsAcquired: false })
-                _tracking.ToggleAcquired(name);
+            else _tracking!.RecordEquipmentPurchase(name);
         }
         if (!changed) return;
         _tracking!.SyncDeployPool();

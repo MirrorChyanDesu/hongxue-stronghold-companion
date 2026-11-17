@@ -32,6 +32,54 @@ public class SettingsManager
         _settingsDir = settingsDir;
     }
 
+    public async Task<MainWindowCloseBehavior> LoadMainWindowCloseBehaviorAsync()
+    {
+        try
+        {
+            var json = await File.ReadAllTextAsync(Path.Combine(_settingsDir, "close-behavior.json"));
+            return JsonSerializer.Deserialize<string>(json) switch
+            {
+                nameof(MainWindowCloseBehavior.Ask) => MainWindowCloseBehavior.Ask,
+                nameof(MainWindowCloseBehavior.MinimizeToTray) => MainWindowCloseBehavior.MinimizeToTray,
+                nameof(MainWindowCloseBehavior.Exit) => MainWindowCloseBehavior.Exit,
+                _ => throw new JsonException("关闭行为设置无效")
+            };
+        }
+        catch (IOException ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return MainWindowCloseBehavior.Ask;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            AppLogger.Warn("Settings", $"关闭行为设置读取失败，将每次询问：{ex.Message}");
+            return MainWindowCloseBehavior.Ask;
+        }
+    }
+
+    public Task SaveMainWindowCloseBehaviorAsync(MainWindowCloseBehavior behavior)
+        => SavePreferenceAsync("close-behavior.json", JsonSerializer.Serialize(behavior.ToString()));
+
+    public async Task<GameStartSettings> LoadGameStartSettingsAsync()
+    {
+        try
+        {
+            var json = await File.ReadAllTextAsync(Path.Combine(_settingsDir, "game-start.json"));
+            var settings = JsonSerializer.Deserialize<GameStartSettings>(json, JsonOptions);
+            if (settings is null || !Enum.IsDefined(settings.WithLineups) || !Enum.IsDefined(settings.WithoutLineups)
+                || !Enum.IsDefined(settings.FixedTarget))
+                throw new JsonException("游戏开始设置无效");
+            return settings;
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException or JsonException)
+        {
+            AppLogger.Warn("Settings", $"Using default game-start navigation: {ex.Message}");
+            return new();
+        }
+    }
+
+    public Task SaveGameStartSettingsAsync(GameStartSettings settings)
+        => SavePreferenceAsync("game-start.json", JsonSerializer.Serialize(settings, JsonOptions));
+
     public async Task<GameConnectionSettings> LoadGameConnectionAsync()
     {
         try
@@ -463,7 +511,8 @@ public class SettingsManager
         var state = document.RootElement.ValueKind == JsonValueKind.Array
             ? new TrackingState { Entries = JsonSerializer.Deserialize<List<TrackingEntry>>(json, JsonOptions)! }
             : JsonSerializer.Deserialize<TrackingState>(json, JsonOptions) ?? throw new JsonException("追踪配置不能为空");
-        if (state.Entries is null || state.Lineups is null || state.Lineups.Any(l => l is null || string.IsNullOrEmpty(l.Id))
+        if (state.PurchasedEquipment is null || state.PurchasedEquipment.Any(string.IsNullOrWhiteSpace)
+            || state.Entries is null || state.Lineups is null || state.Lineups.Any(l => l is null || string.IsNullOrEmpty(l.Id))
             || state.Lineups.Select(l => l.Id).Distinct().Count() != state.Lineups.Count
             || state.Entries.Any(e => e is null || e.Origins is null || e.Equipments is null
                 || e.Origins.Any(o => o is null || o.LineupId is null || o.Equipments is null)))
@@ -473,6 +522,18 @@ public class SettingsManager
             || state.UpgradeReminderProgress.Any(p => p is null || string.IsNullOrEmpty(p.LineupId) || p.TargetLevel is < 2 or > 6)
             || state.UpgradeReminderProgress.Select(p => (p.LineupId, p.TargetLevel)).Distinct().Count() != state.UpgradeReminderProgress.Count)
             throw new JsonException("升本提醒追踪配置无效");
+        foreach (var lineup in state.Lineups)
+        {
+            if (lineup.Stages is null || lineup.Stages.Any(s => s is null || string.IsNullOrWhiteSpace(s.Id) || string.IsNullOrWhiteSpace(s.Name)
+                || s.StartRound.HasValue != s.EndRound.HasValue || s.StartRound < 1 || s.EndRound > 15 || s.StartRound > s.EndRound
+                || s.RecommendedEquipments is null || s.RecommendedEquipments.Any(string.IsNullOrWhiteSpace))
+                || lineup.Stages.Select(s => s.Id).Distinct().Count() != lineup.Stages.Count
+                || (lineup.Stages.Count > 0 && (lineup.Stages.Count(s => s.IsFinal) != 1 || !lineup.Stages.Any(s => s.Id == lineup.SelectedStageId))))
+                throw new JsonException("追踪阶段配置无效");
+        }
+        if (state.Entries.SelectMany(e => e.Origins).Any(o => o.StageId is null || (o.StageId.Length > 0
+            && !state.Lineups.Any(l => l.Id == o.LineupId && l.Stages.Any(s => s.Id == o.StageId)))))
+            throw new JsonException("追踪阶段来源无效");
         var entries = state.Entries;
         var changed = false;
         foreach (var entry in entries.Where(e => e.Type == TrackingType.Operator))
