@@ -291,6 +291,8 @@ python fetch_spdatabase.py --skip-bosses --skip-enemies
 
 ## 开发依赖与致谢
 
+- 感谢 [@k99k5](https://github.com/k99k5) 通过 [PR #27](https://github.com/bingyunhe/hongxue-stronghold-companion/pull/27) 提供自动规划的初始实现。本版本在其基础上进行了功能适配与扩展。
+
 - [Moonfair/ASP_Assistant](https://github.com/Moonfair/ASP_Assistant)：本项目的上游代码与设计基础。
 - [MaaFramework](https://github.com/MaaXYZ/MaaFramework)：OCR、模板与特征匹配。
 - [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet)：MVVM 基础设施。
