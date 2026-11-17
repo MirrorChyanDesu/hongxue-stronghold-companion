@@ -104,7 +104,7 @@ public class UpdateServiceTests
             exePath: @"D:\apps\ASPAssistant\ASPAssistant.App.exe",
             stagingDir: @"D:\apps\ASPAssistant-Staging-20261109-201500",
             backupDir: @"D:\apps\ASPAssistant-backup-20261109-201500",
-            logPath: @"C:\tmp\update.log");
+            logPath: @"C:\tmp\update.log", newExecutableRelativePath: "ASPAssistant.App.exe");
 
         script.Should().Contain("$appPid = 4321");
         // 等待旧进程退出
@@ -120,7 +120,7 @@ public class UpdateServiceTests
         script.Should().Contain("Rename-Item -LiteralPath $backupDir -NewName");
         script.Should().Contain("Start-OldVersion");
         // 成功后启动新版并清理备份
-        script.Should().Contain("Start-Version $exePath");
+        script.Should().Contain("Start-Version (Join-Path $appDir $newExecutable)");
         script.Should().Contain("Remove-Item -LiteralPath $backupDir");
         // 日志与失败提示
         script.Should().Contain("'C:\\tmp\\update.log'");
@@ -136,7 +136,7 @@ public class UpdateServiceTests
     {
         var script = UpdateService.BuildUpdateScript(
             1, @"C:\tmp\src", @"D:\apps\app", @"D:\apps\app\ASPAssistant.App.exe",
-            @"D:\apps\staging", @"D:\apps\backup", @"C:\tmp\log.txt");
+            @"D:\apps\staging", @"D:\apps\backup", @"C:\tmp\log.txt", "ASPAssistant.App.exe");
 
         // 改名最多重试 10 次，每次 500ms
         script.Should().Contain("for ($try = 1; $try -le 10; $try++)");
@@ -164,7 +164,7 @@ public class UpdateServiceTests
     {
         var script = UpdateService.BuildUpdateScript(
             1, @"C:\o'neil\src", @"C:\o'neil\app", @"C:\o'neil\app\ASPAssistant.App.exe",
-            @"C:\o'neil\staging", @"C:\o'neil\backup", @"C:\o'neil\log.txt");
+            @"C:\o'neil\staging", @"C:\o'neil\backup", @"C:\o'neil\log.txt", "ASPAssistant.App.exe");
 
         script.Should().Contain("'C:\\o''neil\\app'");
     }

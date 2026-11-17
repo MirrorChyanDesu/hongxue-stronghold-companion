@@ -41,7 +41,7 @@
 
 鸿雪·卫戍助手是《明日方舟》卫戍协议的侧边辅助工具，读取游戏画面，帮助录入本局信息、标记商店追踪目标，并提供干员和装备查询、阵容管理、阵容规划与站位参考。支持 PC 客户端和 MuMu、雷电 / ADB 连接。
 
-项目原名 ASP Assistant · Arknights。程序文件仍名为 `ASPAssistant.App.exe`；v1.9.0 起配置保存在 `%APPDATA%\HongxueCompanion`，启动时自动合并旧项目配置，无需手动搬迁阵容。
+项目原名 ASP Assistant · Arknights。程序文件仍名为 `ASPAssistant.App.exe`；v1.9.3 为后续文件改名及目录整理提供更新衔接，建议先安装此过渡版；v1.9.0 起配置保存在 `%APPDATA%\HongxueCompanion`，启动时自动合并旧项目配置，无需手动搬迁阵容。
 
 | 页面 | 内容 |
 | --- | --- |

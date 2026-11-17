@@ -6,6 +6,7 @@ using System.Net.Http.Json;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
@@ -180,7 +181,8 @@ public partial class UpdateService
         // Resolve the source directory inside the zip: release.yml zips publish/win-x64,
         // so the archive usually has a single root folder.
         var subDirs = Directory.GetDirectories(extractDir);
-        var sourceDir = subDirs.Length == 1 ? subDirs[0] : extractDir;
+        var sourceDir = subDirs.Length == 1 && Directory.GetFiles(extractDir).Length == 0 ? subDirs[0] : extractDir;
+        var newExecutable = ResolvePackageExecutable(sourceDir);
 
         var appDir = AppContext.BaseDirectory.TrimEnd('\\', '/');
         var parentDir = Path.GetDirectoryName(appDir) ?? appDir;
@@ -194,7 +196,8 @@ public partial class UpdateService
             Path.Combine(appDir, AppExecutableName),
             Path.Combine(parentDir, $"ASPAssistant-Staging-{stamp}"),
             Path.Combine(parentDir, $"ASPAssistant-backup-{stamp}"),
-            Path.Combine(tempDir, "update.log"));
+            Path.Combine(tempDir, "update.log"),
+            newExecutable);
 
         await File.WriteAllTextAsync(scriptPath, scriptContent, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true), ct);
 
@@ -204,6 +207,28 @@ public partial class UpdateService
         PendingStagingDir = Path.Combine(parentDir, $"ASPAssistant-Staging-{stamp}");
         progress?.Report(1.0);
     }
+
+    // The optional manifest is the package boundary: legacy releases have no layout file.
+    internal static string ResolvePackageExecutable(string sourceDir)
+    {
+        var executable = AppExecutableName;
+        var manifest = Path.Combine(sourceDir, "update-layout.json");
+        if (File.Exists(manifest))
+        {
+            var layout = JsonSerializer.Deserialize<PackageLayout>(File.ReadAllText(manifest));
+            if (layout is null || layout.FormatVersion != 1 || layout.Executable is not
+                ("ASPAssistant.App.exe" or "HongxueCompanion.exe" or "app/HongxueCompanion.exe"))
+                throw new InvalidDataException("更新包布局不受支持，请手动下载最新版本");
+            executable = layout.Executable;
+        }
+        if (!File.Exists(Path.Combine(sourceDir, executable)))
+            throw new InvalidDataException($"更新包不完整：缺少 {executable}");
+        return executable;
+    }
+
+    private sealed record PackageLayout(
+        [property: JsonPropertyName("formatVersion")] int FormatVersion,
+        [property: JsonPropertyName("executable")] string? Executable);
 
     /// <summary>
     /// 启动已暂存的更新脚本（应在应用即将退出时调用）。
@@ -318,7 +343,8 @@ public partial class UpdateService
         string exePath,
         string stagingDir,
         string backupDir,
-        string logPath)
+        string logPath,
+        string newExecutableRelativePath)
     {
         static string Q(string value) => "'" + (value ?? "").Replace("'", "''") + "'";
 
@@ -330,6 +356,7 @@ public partial class UpdateService
         sb.AppendLine($"$stagingDir = {Q(stagingDir)}");
         sb.AppendLine($"$backupDir = {Q(backupDir)}");
         sb.AppendLine($"$exePath = {Q(exePath)}");
+        sb.AppendLine($"$newExecutable = {Q(newExecutableRelativePath)}");
         sb.AppendLine($"$logPath = {Q(logPath)}");
         sb.AppendLine("$silent = ($env:ASPA_UPDATE_SILENT -eq '1')");
         sb.AppendLine();
@@ -352,7 +379,7 @@ public partial class UpdateService
         sb.AppendLine("function Start-Version([string]$path, [string]$resultPath) {");
         sb.AppendLine("    $start = New-Object System.Diagnostics.ProcessStartInfo");
         sb.AppendLine("    $start.FileName = $path");
-        sb.AppendLine("    $start.WorkingDirectory = $appDir");
+        sb.AppendLine("    $start.WorkingDirectory = Split-Path -Parent $path");
         sb.AppendLine("    $start.UseShellExecute = $false");
         sb.AppendLine("    $start.EnvironmentVariables.Remove('ASPA_UPDATE_STARTUP_RESULT')");
         sb.AppendLine("    if ($resultPath) { $start.EnvironmentVariables['ASPA_UPDATE_STARTUP_RESULT'] = $resultPath }");
@@ -399,8 +426,8 @@ public partial class UpdateService
         sb.AppendLine("    }");
         sb.AppendLine("    Start-Sleep -Milliseconds 800");
         sb.AppendLine();
-        sb.AppendLine("    if (-not (Test-Path -LiteralPath (Join-Path $sourceDir 'ASPAssistant.App.exe'))) {");
-        sb.AppendLine("        throw '更新包不完整：缺少 ASPAssistant.App.exe'");
+        sb.AppendLine("    if (-not (Test-Path -LiteralPath (Join-Path $sourceDir $newExecutable) -PathType Leaf)) {");
+        sb.AppendLine("        throw \"更新包不完整：缺少 $newExecutable\"");
         sb.AppendLine("    }");
         sb.AppendLine();
         sb.AppendLine("    if (Test-Path -LiteralPath $stagingDir) { Remove-Item -LiteralPath $stagingDir -Recurse -Force }");
@@ -439,7 +466,7 @@ public partial class UpdateService
         sb.AppendLine();
         sb.AppendLine("    Start-Sleep -Milliseconds 400");
         sb.AppendLine("    $startupResult = Join-Path (Split-Path -Parent $logPath) ('startup-' + [Guid]::NewGuid().ToString('N') + '.status')");
-        sb.AppendLine("    $newProcess = Start-Version $exePath $startupResult");
+        sb.AppendLine("    $newProcess = Start-Version (Join-Path $appDir $newExecutable) $startupResult");
         sb.AppendLine("    $startupTimeout = 60");
         sb.AppendLine("    $deadline = [DateTime]::UtcNow.AddSeconds($startupTimeout)");
         sb.AppendLine("    while ($true) {");
