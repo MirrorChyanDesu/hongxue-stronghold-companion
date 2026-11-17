@@ -9,6 +9,7 @@ namespace ASPAssistant.Core.ViewModels;
 public partial class TrackingViewModel : ObservableObject
 {
     private DeployPoolState? _deployPool;
+    public IReadOnlySet<string>? OwnedOperatorNames => _deployPool?.Owned.ToHashSet(StringComparer.Ordinal);
     private List<TrackedLineup> _trackedLineups = [];
     public IReadOnlySet<string> TrackedLineupIds => _trackedLineups.Where(l => l.Highlighted).Select(l => l.Id).ToHashSet(StringComparer.Ordinal);
     public bool IsLineupTracked(string id) => _trackedLineups.Any(l => l.Id == id);
@@ -16,7 +17,8 @@ public partial class TrackingViewModel : ObservableObject
 
     public TrackingState CaptureState() => new()
     {
-        Entries = [.. AllEntries], Lineups = [.. _trackedLineups],
+        Entries = [.. AllEntries], Lineups = [.. _trackedLineups], StageLineupId = _stageLineupId,
+        ShowAllStages = ShowAllStages, PurchasedEquipment = [.. _purchasedEquipment],
         UpgradeReminderLineupId = _upgradeReminderLineupId, UpgradeReminderProgress = [.. _upgradeProgress.Values]
     };
 
@@ -29,20 +31,28 @@ public partial class TrackingViewModel : ObservableObject
     private void NotifySourcesChanged()
     {
         var ids = TrackedOperators.SelectMany(e => e.Origins).Select(o => o.LineupId).ToHashSet();
-        _trackedLineups.RemoveAll(l => !ids.Contains(l.Id) && l.UpgradeReminders.Count == 0);
+        _trackedLineups.RemoveAll(l => !ids.Contains(l.Id) && l.UpgradeReminders.Count == 0 && !l.Stages.Any(s => s.RecommendedEquipments.Count > 0));
+        RefreshStageChoices();
         RefreshUpgradeReminderSources();
         OnPropertyChanged(nameof(TrackedLineupIds));
         SourcesChanged?.Invoke();
     }
 
-    private static TrackingEntry MergeOrigins(TrackingEntry entry, List<TrackingOrigin> origins)
+    private TrackingEntry MergeOrigins(TrackingEntry entry, List<TrackingOrigin> origins, bool allStages = false)
     {
+        var allOrigins = origins;
+        var active = origins.Where(o => allStages || o.StageId.Length == 0 || _trackedLineups.Any(l => l.Id == o.LineupId && l.SelectedStageId == o.StageId)).ToList();
+        bool stageActive = active.Count > 0;
+        if (stageActive) origins = active;
+
         var preferred = origins.LastOrDefault(o => o.Role == TrackingRole.Final) ?? origins[^1];
         var merged = Copy(entry, false);
-        merged.Origins = origins;
+        merged.Origins = allOrigins;
+        merged.IsStageActive = stageActive;
         merged.IsManual = origins.Any(o => o.LineupId.Length == 0);
         merged.Role = preferred.Role;
         merged.IsElite = origins.Any(o => o.IsElite);
+        if (_deployPool is null && merged.IsElite && !entry.IsElite) merged.IsAcquired = false;
         merged.TransformedCovenant = preferred.TransformedCovenant;
         merged.Equipments = origins.SelectMany(o => o.Equipments).Distinct().ToList();
         merged.CandidateEquipments = origins.SelectMany(o => o.CandidateEquipments)
@@ -86,7 +96,7 @@ public partial class TrackingViewModel : ObservableObject
         [.. TrackedOperators, .. TrackedEquipment];
 
     /// <summary>Entries the shop should mark: 过渡 operators whose route stages are behind the player are left out.</summary>
-    public IReadOnlyList<TrackingEntry> ActiveEntries => [.. AllEntries.Where(e => !e.IsExpired)];
+    public IReadOnlyList<TrackingEntry> ActiveEntries => [.. AllEntries.Where(e => e.IsStageActive && !e.IsExpired)];
 
     // ── Terminal level ──────────────────────────────────────────────────────
 
@@ -151,6 +161,7 @@ public partial class TrackingViewModel : ObservableObject
     public void StartNewRun()
     {
         Economy = null;
+        _purchasedEquipment.Clear();
         _upgradeProgress.Clear();
         if (_deployPool is not null)
         {
@@ -191,23 +202,26 @@ public partial class TrackingViewModel : ObservableObject
         Name = e.Name, Type = e.Type, TransformedCovenant = e.TransformedCovenant, Equipments = [.. e.Equipments],
         CandidateEquipments = [.. e.CandidateEquipments.Select(c => c.Clone())], EquipmentKind = e.EquipmentKind,
         IsElite = e.IsElite, IsManual = e.IsManual, Role = e.Role, Stages = e.Stages, ExpiresAt = e.ExpiresAt, IsExpired = expired,
-        IsAcquired = e.IsAcquired, Origins = [.. e.Origins]
+        IsAcquired = e.IsAcquired, IsStageActive = e.IsStageActive, Origins = [.. e.Origins]
     };
 
     public (int Operators, int Equipment) TrackLineup(Lineup lineup)
     {
         if (!TrackMultipleLineups) ClearAllTracking();
-        return ApplyLineupTargets(lineup, true);
+        return ApplyLineupTargets(lineup, true, false);
     }
 
     public void ApplyTrackedLineup(Lineup lineup)
     {
         if (!IsLineupTracked(lineup.Id)) throw new InvalidOperationException("该阵容尚未关联追踪");
-        ApplyLineupTargets(lineup, _trackedLineups.Single(l => l.Id == lineup.Id).Highlighted);
+        ApplyLineupTargets(lineup, _trackedLineups.Single(l => l.Id == lineup.Id).Highlighted, true);
     }
 
-    private (int Operators, int Equipment) ApplyLineupTargets(Lineup lineup, bool highlight)
+    private (int Operators, int Equipment) ApplyLineupTargets(Lineup lineup, bool highlight, bool preserveCompletion)
     {
+        var oldEntries = TrackedOperators.ToDictionary(e => e.Name);
+        var previousSource = _trackedLineups.FirstOrDefault(l => l.Id == lineup.Id);
+        var stageSlots = LineupStages(lineup);
         var previousOperators = TrackedOperators.Where(e => !e.IsAcquired).Select(e => e.Name).ToHashSet();
         var previousEquipment = TrackedEquipment.Where(e => !e.IsAcquired).Select(e => e.Name).ToHashSet();
         foreach (var existing in TrackedOperators.Where(e => e.Origins.Any(o => o.LineupId == lineup.Id)).ToList())
@@ -221,28 +235,27 @@ public partial class TrackingViewModel : ObservableObject
                      && !lineup.UpgradeReminders.Any(r => r.TargetLevel == k.Level && previousReminders?.Contains(r) == true)).ToList())
             _upgradeProgress.Remove(key);
         _trackedLineups.RemoveAll(l => l.Id == lineup.Id);
+        var stages = stageSlots.Select(s => new TrackedLineupStage(s.Id, s.Name, s.IsFinal, s.StartRound, s.EndRound) { RecommendedEquipments = [.. s.RecommendedEquipments] }).ToList();
+        var selected = stages.FirstOrDefault(s => s.Id == previousSource?.SelectedStageId) ?? stages.Single(s => s.IsFinal);
         _trackedLineups.Add(new TrackedLineup(lineup.Id, lineup.Name, highlight)
         {
+            Stages = stages, SelectedStageId = selected.Id, AutomaticStageSwitch = previousSource?.AutomaticStageSwitch == true,
             UpgradeReminders = [.. lineup.UpgradeReminders], UpgradeNotificationsEnabled = lineup.UpgradeNotificationsEnabled
         });
-        var phases = new[] { (Slots: lineup.Slots, Phase: "后期"), (Slots: lineup.MidSlots, Phase: "中期"),
-            (Slots: lineup.EarlySlots, Phase: "前期"), (Slots: lineup.SupportSlots, Phase: "挂件") };
-        foreach (var group in phases.SelectMany(p => p.Slots.Select(slot => (Slot: slot, p.Phase)))
-            .Where(p => p.Slot.OperatorName.Length > 0).GroupBy(p => p.Slot.OperatorName))
+        _stageLineupId = lineup.Id;
+        foreach (var group in stageSlots.SelectMany(stage => stage.Slots.Where(slot => slot.OperatorName.Length > 0)
+            .Select(slot => (Slot: slot, Stage: stage))).GroupBy(p => p.Slot.OperatorName))
         {
-            var (slot, phase) = group.First();
-            var role = phase == "后期" ? TrackingRole.Final : TrackingRole.Transition;
-            var existing = TrackedOperators.FirstOrDefault(e => e.Name == slot.OperatorName);
-            var entry = new TrackingEntry
-            {
-                Name = slot.OperatorName, Type = TrackingType.Operator, Role = role,
-                Stages = role == TrackingRole.Final ? "" : string.Join(" · ", new[] { "前期", "中期", "挂件" }.Where(name => group.Any(p => p.Phase == name))),
-                TransformedCovenant = slot.TransformedCovenant, Equipments = [.. slot.Equipments], IsElite = slot.IsElite,
-                CandidateEquipments = [.. slot.CandidateEquipments.Where(c => !slot.Equipments.Contains(c.Name)).Select(c => c.Clone())]
-            };
+            var existing = TrackedOperators.FirstOrDefault(e => e.Name == group.Key);
+            var entry = preserveCompletion && oldEntries.TryGetValue(group.Key, out var previous) ? previous
+                : new TrackingEntry { Name = group.Key, Type = TrackingType.Operator };
             var origins = existing is null ? new List<TrackingOrigin>() : existing.Origins.Count > 0
                 ? existing.Origins.ToList() : [TrackingOrigin.From(existing, "")];
-            origins.Add(TrackingOrigin.From(entry, lineup.Id));
+            foreach (var (slot, stage) in group)
+                origins.Add(new TrackingOrigin { LineupId = lineup.Id, StageId = stage.Id,
+                    Role = stage.IsFinal ? TrackingRole.Final : TrackingRole.Transition, Stages = stage.IsFinal ? "" : stage.Name,
+                    IsElite = slot.IsElite, TransformedCovenant = slot.TransformedCovenant, Equipments = [.. slot.Equipments],
+                    CandidateEquipments = slot.CandidateEquipments.Where(c => !slot.Equipments.Contains(c.Name)).Select(c => c.Clone()).ToList() });
             var merged = MergeOrigins(entry, origins);
             if (existing is null) TrackedOperators.Add(merged);
             else TrackedOperators[TrackedOperators.IndexOf(existing)] = merged;
@@ -251,13 +264,14 @@ public partial class TrackingViewModel : ObservableObject
         RefreshEquipmentRequirements();
         SyncDeployPool();
         NotifySourcesChanged();
+        FollowStageRound();
         return (TrackedOperators.Count(e => !e.IsAcquired && !previousOperators.Contains(e.Name)), TrackedEquipment.Count(e => !e.IsAcquired && !previousEquipment.Contains(e.Name)));
     }
 
     /// <summary>
-    /// Tracks every operator of a 道中路线 in one list: 大成 operators as <see cref="TrackingRole.Final"/>,
+    /// Tracks every operator of a 道中路线 in one list: 成型阵容 operators as <see cref="TrackingRole.Final"/>,
     /// operators only used on the way as <see cref="TrackingRole.Transition"/> (with the stages that use them).
-    /// An operator already tracked as 大成 stays 大成. Returns (new 大成, new 过渡) counts.
+    /// An operator already tracked as 成型阵容 stays 成型阵容. Returns (new 成型阵容, new 过渡) counts.
     /// </summary>
     public (int Final, int Transition) TrackRoute(PlannedRoute route, LineupEquipmentService? equipmentRules = null)
     {
@@ -322,7 +336,7 @@ public partial class TrackingViewModel : ObservableObject
         var existing = entries.FirstOrDefault(e => e.Name == name);
         if (existing is null)
         {
-            entries.Add(new TrackingEntry { Name = name, Type = type, IsAcquired = type == TrackingType.Operator && _deployPool?.IsOwned(name) == true });
+            entries.Add(new TrackingEntry { Name = name, Type = type, IsAcquired = type == TrackingType.Operator ? _deployPool?.IsOwned(name) == true : _purchasedEquipment.Contains(name) });
             return;
         }
         if (type == TrackingType.Operator && existing.Origins.Count > 0 && existing.Origins.All(o => o.LineupId.Length > 0 || o.IsRoute))
@@ -334,11 +348,12 @@ public partial class TrackingViewModel : ObservableObject
             existing = manual;
         }
         if (!existing.IsAcquired && (type != TrackingType.Equipment || existing.IsManual)) return;
-        // Tracked again (or an automatic equipment entry tracked by hand): keep 大成 / 过渡 and the stages.
+        // Tracked again (or an automatic equipment entry tracked by hand): keep 成型阵容 / 过渡 and the stages.
         var again = Copy(existing, existing.IsExpired);
         again.IsAcquired = type == TrackingType.Operator && _deployPool is not null
             && (existing.IsElite ? _deployPool.IsElite(name) : _deployPool.IsOwned(name));
         again.IsManual = true;
+        if (type == TrackingType.Equipment) _purchasedEquipment.Remove(name);
         entries[entries.IndexOf(existing)] = again;
         if (type == TrackingType.Operator) RefreshEquipmentRequirements();
     }
@@ -370,22 +385,32 @@ public partial class TrackingViewModel : ObservableObject
     public void ToggleAcquired(string name)
     {
         var entries = TrackedOperators.Any(e => e.Name == name) ? TrackedOperators : TrackedEquipment;
-        var entry = entries.Single(e => e.Name == name);
+        var entry = entries.FirstOrDefault(e => e.Name == name);
+        if (entry is null)
+        {
+            if (!_purchasedEquipment.Remove(name)) _purchasedEquipment.Add(name);
+            OnPropertyChanged(nameof(DisplayEquipment));
+            SourcesChanged?.Invoke();
+            return;
+        }
         if (entry.IsAcquired)
         {
             var resumed = Copy(entry, entry.IsExpired);
             resumed.IsAcquired = entry.Type == TrackingType.Operator && _deployPool is not null
                 && (entry.IsElite ? _deployPool.IsElite(name) : _deployPool.IsOwned(name));
-            if (entry.Type == TrackingType.Equipment) resumed.IsManual = true;
+            if (entry.Type == TrackingType.Equipment) { resumed.IsManual = true; _purchasedEquipment.Remove(name); }
             entries[entries.IndexOf(entry)] = resumed;
             if (entry.Type == TrackingType.Operator) RefreshEquipmentRequirements();
+            else SourcesChanged?.Invoke();
             return;
         }
         var acquired = Copy(entry, entry.IsExpired);
         acquired.IsAcquired = true;
+        if (entry.Type == TrackingType.Equipment) _purchasedEquipment.Add(name);
         entries[entries.IndexOf(entry)] = acquired;
         if (entry.Type == TrackingType.Equipment) RemoveCandidateRequirement(name);
         if (entry.Type == TrackingType.Operator) RefreshEquipmentRequirements();
+        else SourcesChanged?.Invoke();
     }
 
     public void RemoveTracking(string name)
@@ -403,14 +428,22 @@ public partial class TrackingViewModel : ObservableObject
         if (eqEntry != null)
         {
             TrackedEquipment.Remove(eqEntry);
-            RemoveEquipmentRequirement(name);
         }
+        RemoveEquipmentRequirement(name);
+        NotifySourcesChanged();
     }
 
     private void RemoveEquipmentRequirement(string name)
     {
+        for (int index = 0; index < _trackedLineups.Count; index++)
+        {
+            var lineup = _trackedLineups[index];
+            if (!lineup.Stages.Any(s => s.RecommendedEquipments.Contains(name))) continue;
+            _trackedLineups[index] = lineup with { Stages = lineup.Stages.Select(s => s with
+                { RecommendedEquipments = s.RecommendedEquipments.Where(n => n != name).ToList() }).ToList() };
+        }
         RemoveCandidateRequirement(name);
-        foreach (var entry in TrackedOperators.Where(e => e.Equipments.Contains(name)).ToList())
+        foreach (var entry in TrackedOperators.Where(e => e.Equipments.Contains(name) || e.Origins.Any(o => o.Equipments.Contains(name))).ToList())
         {
             var without = Copy(entry, entry.IsExpired);
             without.Equipments = entry.Equipments.Where(e => e != name).ToList();
@@ -436,7 +469,7 @@ public partial class TrackingViewModel : ObservableObject
 
     /// <summary>Operators who want <paramref name="equipment"/>, and how (for the tracking list's subtitle).</summary>
     public IReadOnlyList<(string Operator, TrackedEquipmentKind Kind)> EquipmentWanters(string equipment)
-        => [.. TrackedOperators.SelectMany(e => e.Equipments.Contains(equipment)
+        => [.. DisplayOperators.SelectMany(e => e.Equipments.Contains(equipment)
                 ? [(e.Name, TrackedEquipmentKind.Planned)]
                 : e.CandidateEquipments.Where(c => c.Name == equipment)
                     .Select(c => (e.Name, c.IsPriority ? TrackedEquipmentKind.Priority : TrackedEquipmentKind.Candidate)))];
@@ -471,30 +504,48 @@ public partial class TrackingViewModel : ObservableObject
     /// Equipment entries follow the tracked operators: slot equipment is 装备, candidates are 优先 / 候选, and the
     /// strongest reason wins when several operators want the same piece. Manual and acquired entries are left alone.
     /// </summary>
-    private void RefreshEquipmentRequirements()
+    private Dictionary<string, TrackedEquipmentKind> EquipmentRequirements(IEnumerable<TrackingEntry> operators, bool allStages = false)
     {
         var required = new Dictionary<string, TrackedEquipmentKind>(StringComparer.Ordinal);
         void Want(string name, TrackedEquipmentKind kind)
         {
             if (!required.TryGetValue(name, out var had) || kind < had) required[name] = kind;
         }
-        foreach (var op in TrackedOperators)
+        foreach (var op in operators)
         {
             foreach (var name in op.Equipments) Want(name, TrackedEquipmentKind.Planned);
             foreach (var c in op.CandidateEquipments)
                 Want(c.Name, c.IsPriority ? TrackedEquipmentKind.Priority : TrackedEquipmentKind.Candidate);
         }
+        foreach (var lineup in _trackedLineups)
+            foreach (var stage in lineup.Stages.Where(s => allStages || s.Id == lineup.SelectedStageId))
+                foreach (var name in stage.RecommendedEquipments) Want(name, TrackedEquipmentKind.Candidate);
+        return required;
+    }
+
+    private void RefreshEquipmentRequirements()
+    {
+        var required = EquipmentRequirements(TrackedOperators.Where(e => e.IsStageActive));
         foreach (var entry in TrackedEquipment.Where(e => !e.IsManual && !e.IsAcquired && !required.ContainsKey(e.Name)).ToList())
             TrackedEquipment.Remove(entry);
+        foreach (var entry in TrackedEquipment.ToList())
+        {
+            bool active = entry.IsManual || required.ContainsKey(entry.Name);
+            if (entry.IsStageActive == active) continue;
+            var updated = Copy(entry, entry.IsExpired);
+            updated.IsStageActive = active;
+            TrackedEquipment[TrackedEquipment.IndexOf(entry)] = updated;
+        }
         foreach (var (name, kind) in required)
         {
             var existing = TrackedEquipment.FirstOrDefault(e => e.Name == name);
             if (existing is null)
-                TrackedEquipment.Add(new TrackingEntry { Name = name, Type = TrackingType.Equipment, IsManual = false, EquipmentKind = kind });
-            else if (!existing.IsManual && existing.EquipmentKind != kind)
+                TrackedEquipment.Add(new TrackingEntry { Name = name, Type = TrackingType.Equipment, IsManual = false, EquipmentKind = kind, IsAcquired = _purchasedEquipment.Contains(name) });
+            else if ((!existing.IsManual && existing.EquipmentKind != kind) || (!existing.IsAcquired && _purchasedEquipment.Contains(name)))
             {
                 var updated = Copy(existing, existing.IsExpired);
-                updated.EquipmentKind = kind;
+                if (!existing.IsManual) updated.EquipmentKind = kind;
+                updated.IsAcquired = existing.IsAcquired || _purchasedEquipment.Contains(name);
                 TrackedEquipment[TrackedEquipment.IndexOf(existing)] = updated;
             }
         }
@@ -502,23 +553,30 @@ public partial class TrackingViewModel : ObservableObject
 
     public bool IsTracked(string name)
     {
-        return TrackedOperators.Any(e => e.Name == name && !e.IsAcquired)
-            || TrackedEquipment.Any(e => e.Name == name && !e.IsAcquired);
+        return TrackedOperators.Any(e => e.Name == name && e.IsStageActive && !e.IsAcquired)
+            || TrackedEquipment.Any(e => e.Name == name && e.IsStageActive && !e.IsAcquired);
     }
 
     public void LoadState(TrackingState state)
     {
         LoadEntries(state.Entries);
         _trackedLineups = state.Lineups.ToList();
+        _stageLineupId = state.StageLineupId;
+        _showAllStages = state.ShowAllStages;
+        _purchasedEquipment.UnionWith(state.PurchasedEquipment);
+        RefreshStageTargets();
         _upgradeReminderLineupId = state.UpgradeReminderLineupId;
         foreach (var progress in state.UpgradeReminderProgress)
             _upgradeProgress[(progress.LineupId, progress.TargetLevel)] = progress;
         NotifySourcesChanged();
+        OnPropertyChanged(nameof(ShowAllStages));
     }
 
     public void LoadEntries(List<TrackingEntry> entries)
     {
         _upgradeProgress.Clear();
+        _purchasedEquipment.Clear();
+        _purchasedEquipment.UnionWith(entries.Where(e => e.Type == TrackingType.Equipment && e.IsAcquired).Select(e => e.Name));
         _upgradeReminderLineupId = null;
         _trackedLineups.Clear();
         TrackedOperators.Clear();

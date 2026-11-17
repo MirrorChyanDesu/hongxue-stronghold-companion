@@ -68,7 +68,7 @@ internal static class StrategySupportSearchViewTests
                 deploy.Initialize(operators.ToDictionary(o => o.Name), [], null, tracking, new SettingsManager(folder), state, false);
                 host.Content = deploy;
                 ((TextBox)deploy.FindName("PoolSearch")).Text = "盟约辅助干员"; Pump();
-                var groups = (StackPanel)deploy.FindName("PoolGroups");
+                var groups = (StackPanel)deploy.FindName("PoolTrackedBody");
                 Desc<TextBlock>(groups).Should().Contain(t => t.Text == PlannerStrategies.PithName);
                 Desc<TextBlock>(groups).Should().NotContain(t => t.Text == "正常干员");
             }

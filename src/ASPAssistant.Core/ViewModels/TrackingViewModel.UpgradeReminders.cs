@@ -46,6 +46,7 @@ public partial class TrackingViewModel
 
     partial void OnEconomyChanged(ShopEconomy? oldValue, ShopEconomy? newValue)
     {
+        if (oldValue?.Round != newValue?.Round) FollowStageRound();
         if (oldValue?.Round != newValue?.Round || oldValue?.IsPreparation != newValue?.IsPreparation)
             RefreshUpgradeReminder();
     }

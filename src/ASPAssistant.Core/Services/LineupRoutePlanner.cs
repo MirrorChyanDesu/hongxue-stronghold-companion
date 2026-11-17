@@ -3,9 +3,9 @@ using ASPAssistant.Core.Models;
 namespace ASPAssistant.Core.Services;
 
 /// <summary>
-/// Derives the transition lineups (开局 → 前期 → 中期 → 后期 (叠层)) that lead to a chosen 大成 lineup.
+/// Derives the transition lineups (开局 → 前期 → 中期 → 后期 (叠层)) that lead to a chosen 成型阵容 lineup.
 /// <para>
-/// Stages are solved backwards from 大成: each earlier stage is the best lineup the terminal can offer
+/// Stages are solved backwards from 成型阵容: each earlier stage is the best lineup the terminal can offer
 /// (tier ≤ terminal level, plus a few one-tier-higher operators from 三连) that builds the target covenants
 /// and keeps as many operators of the following stage as possible, so the route needs few replacements.
 /// Operators that are not in the final lineup are reported as 过渡 (transition).
@@ -28,7 +28,7 @@ public sealed class LineupRoutePlanner
     private const double MissingHealer = 600;
     /// <summary>Healers are required from this terminal level on (三本以后).</summary>
     public const int HealerFromTerminal = 3;
-    /// <summary>Value of one layer per round on a covenant the 大成 lineup activates (layers are kept).</summary>
+    /// <summary>Value of one layer per round on a covenant the 成型阵容 lineup activates (layers are kept).</summary>
     private const double LayerFinal = 6;
     /// <summary>Value of one layer per round on a covenant only active in this stage.</summary>
     private const double LayerTransition = 2;
@@ -50,12 +50,14 @@ public sealed class LineupRoutePlanner
     private const double PerTier = 1.5;
     private const double SpeculativeTriple = 6;
     private const double SoloConflict = 60;
-    /// <summary>后期 (叠层): each 大成 covenant kept active (needed to stack it at all).</summary>
+    /// <summary>后期 (叠层): each 成型阵容 covenant kept active (needed to stack it at all).</summary>
     private const double StackingKeepCovenantActive = 150;
     /// <summary>后期 (叠层): per member a target core covenant (or the best target additional covenant) is short of its plan.</summary>
     private const double StackingGoalMissing = 400;
     /// <summary>后期 (叠层): layers count 3× the normal stage weight.</summary>
     private const double StackingLayerWeight = 3;
+    /// <summary>Per member a <see cref="RouteStageDefinition.Required"/> covenant is short of its count.</summary>
+    private const double RequiredMissing = 300;
     private const int MaxImprovementRounds = 60;
 
     private readonly IReadOnlyList<Operator> _operators;
@@ -64,12 +66,15 @@ public sealed class LineupRoutePlanner
     private readonly LineupPlanner _planner;
     /// <summary>Distinct covenants of each operator and whether it is a 调和 holder (Score is called a lot).</summary>
     private readonly Dictionary<string, (string[] Covenants, bool Harmony)> _opCovenants;
+    /// <summary>Every non-core covenant: the only ones a <see cref="RouteStageDefinition.SmallGoals"/> stage scores.</summary>
+    private readonly HashSet<string> _additionalNames;
 
     public LineupRoutePlanner(IEnumerable<Operator> operators, IEnumerable<CovenantInfo> covenants)
     {
         _operators = [.. operators];
         _byName = _operators.GroupBy(o => o.Name).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
         _covenants = covenants.GroupBy(c => c.Name).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+        _additionalNames = _covenants.Values.Where(c => c.BondType != "SEASON").Select(c => c.Name).ToHashSet(StringComparer.Ordinal);
         _planner = new LineupPlanner(_operators, _covenants.Values);
         _opCovenants = _byName.ToDictionary(kv => kv.Key, kv =>
         {
@@ -81,7 +86,7 @@ public sealed class LineupRoutePlanner
     // The run's strategy pieces for the route being planned (Plan runs synchronously on one thread).
     /// <summary>Pith's 调和 piece is there from round 1 in every stage.</summary>
     [ThreadStatic] private static bool _pith;
-    /// <summary>暴躁铁皮's transformations, counted where the 大成 transformations are (后期 (叠层), 大成).</summary>
+    /// <summary>暴躁铁皮's transformations, counted where the 成型阵容 transformations are (后期 (叠层), 成型阵容).</summary>
     [ThreadStatic] private static IReadOnlyList<string>? _mech;
 
     public PlannedRoute Plan(RouteRequest request, CancellationToken cancellationToken = default)
@@ -99,7 +104,7 @@ public sealed class LineupRoutePlanner
         var finalTransforms = request.Final.Operators.Where(o => o.TransformedCovenant is not null)
             .ToDictionary(o => o.Name, o => o.TransformedCovenant!, StringComparer.Ordinal);
         var finalCounts = Count(finalNames, finalTransforms);
-        // Layers are kept for the rest of the run, so stacking what 大成 activates is an investment.
+        // Layers are kept for the rest of the run, so stacking what 成型阵容 activates is an investment.
         var finalActive = finalCounts.Where(kv => kv.Value >= ActivateCount(kv.Key)).Select(kv => kv.Key)
             .ToHashSet(StringComparer.Ordinal);
         // A stacking stage fields as many people as the boss lineup; 暴躁铁皮 / Pith take one place in every stage.
@@ -118,18 +123,20 @@ public sealed class LineupRoutePlanner
         var stageCount = request.Stages.Count;
         // Earlier layers accumulate for more rounds: 开局 1.3 … 四本 0.85 with the default four stages.
         double StageWeight(int s) => 0.7 + 0.15 * (stageCount - s);
+        // A 先小后大 stage builds its own 小盟约; every other stage (and 后期 叠层) builds the route's goals.
+        IReadOnlyList<PlannerGoal> StageGoals(RouteStageDefinition def) => def.Stacking || def.SmallGoals is null ? goals : def.SmallGoals;
         var pool = _operators.Where(o => o.IsAvailableForSelection)
             .Where(o => !request.BannedOperators.Contains(o.Name))
             .Where(o => !request.ExcludeMixedBannedOperators || !_planner.IsExcludedByBans(o, request.BannedCovenants))
             .ToList();
 
-        // Backwards: 大成 → 后期 → 中期 → 前期 → 开局.
+        // Backwards: 成型阵容 → 后期 → 中期 → 前期 → 开局.
         var teams = new List<string>[request.Stages.Count];
         IReadOnlySet<string> next = finalNames;
         for (var s = request.Stages.Count - 1; s >= 0; s--)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var team = SolveStage(request.Stages[s], pool, goals, next, finalNames, previous: null, teams[s], finalActive, StageWeight(s),
+            var team = SolveStage(request.Stages[s], pool, StageGoals(request.Stages[s]), next, finalNames, previous: null, teams[s], finalActive, StageWeight(s),
                 request.Stages[s].Stacking ? finalTransforms : NoTransforms);
             teams[s] = team;
             // A stacking stage is a detour before the boss: earlier stages still head for the boss lineup.
@@ -144,7 +151,7 @@ public sealed class LineupRoutePlanner
             var after = s + 1 < request.Stages.Count && !request.Stages[s + 1].Stacking
                 ? teams[s + 1].ToHashSet(StringComparer.Ordinal) : finalNames;
             var before = s > 0 ? teams[s - 1] : null;
-            teams[s] = SolveStage(request.Stages[s], pool, goals, after, finalNames, before, teams[s], finalActive, StageWeight(s),
+            teams[s] = SolveStage(request.Stages[s], pool, StageGoals(request.Stages[s]), after, finalNames, before, teams[s], finalActive, StageWeight(s),
                 request.Stages[s].Stacking ? finalTransforms : NoTransforms);
         }
 
@@ -159,14 +166,18 @@ public sealed class LineupRoutePlanner
                 .OrderBy(o => finalNames.Contains(o.Name) ? 0 : 1).ThenByDescending(o => o.Tier).ThenBy(o => o.Name, StringComparer.Ordinal)
                 .Select(o => ToRouteOperator(o, finalNames, previous, viaTriple: o.Tier > def.MaxTier, transform: null))
                 .ToList();
-            // Transformations planned for 大成 are already done by 后期 (叠层).
+            // Transformations planned for 成型阵容 are already done by 后期 (叠层).
             var stageTransforms = def.Stacking ? finalTransforms : NoTransforms;
             if (def.Stacking)
                 ops = [.. ops.Select(o => o with { TransformedCovenant = finalTransforms.GetValueOrDefault(o.Name) })];
-            var summary = Summarize(team, stageTransforms, goals, def.TerminalLevel, finalActive);
+            var stageGoals = StageGoals(def);
+            var summary = Summarize(team, stageTransforms, stageGoals, def.TerminalLevel, finalActive);
             if (def.Stacking)
                 summary = summary with { Warnings = [.. summary.Warnings, .. StackingGoalWarnings(Count(team, stageTransforms), goals)] };
-            stages.Add(new RouteStage(def, ops, Status(team, stageTransforms, goals))
+            // The stage's own 小盟约 first, then the route's goals (the 本家 it is heading for).
+            IReadOnlyList<PlannerGoal> shownGoals = ReferenceEquals(stageGoals, goals) ? goals
+                : [.. stageGoals, .. goals.Where(g => stageGoals.All(s => s.Name != g.Name))];
+            stages.Add(new RouteStage(def, ops, Status(team, stageTransforms, shownGoals))
             {
                 Summary = summary,
                 Removed = previous.Where(n => !team.Contains(n)).Order(StringComparer.Ordinal).ToList()
@@ -177,7 +188,7 @@ public sealed class LineupRoutePlanner
         var finalTeam = request.Final.Operators.Select(o => o.Name).ToList();
         var transforms = request.Final.Operators.Where(o => o.TransformedCovenant is not null)
             .ToDictionary(o => o.Name, o => o.TransformedCovenant!, StringComparer.Ordinal);
-        var finalDef = new RouteStageDefinition("大成（打 Boss）", 6, 6, 0, request.Final.People);
+        var finalDef = new RouteStageDefinition("成型阵容（打 Boss）", 6, 6, 0, request.Final.People);
         var finalOps = request.Final.Operators
             .Where(o => _byName.ContainsKey(o.Name))
             .Select(o => ToRouteOperator(_byName[o.Name], finalNames, previous, false, o.TransformedCovenant))
@@ -244,17 +255,30 @@ public sealed class LineupRoutePlanner
                 combined.Add(o);
         }
         seeds.Add(combined);
+        // A required covenant needs all of its members at once, not just the activation count.
+        if (!def.Stacking)
+            foreach (var g in def.Required)
+                seeds.Add(Holders(g.Name).Take(g.Count).ToList());
 
         // Seeds are independent: solve them in parallel, then pick in seed order so the result stays deterministic.
         var solved = new (List<Operator> Team, double Score)[seeds.Count];
+        // The strategy pieces are thread-static: hand them to the worker threads, which would otherwise count
+        // the seeds they solve without Pith / 暴躁铁皮.
+        var (pith, mech) = (_pith, _mech);
         Parallel.For(0, seeds.Count, i =>
         {
-            var team = new List<Operator>();
-            foreach (var o in seeds[i])
-                if (team.Count < size && ctx.CanAdd(team, o)) team.Add(o);
-            Fill(team, pool, size, ctx);
-            Improve(team, pool, ctx);
-            solved[i] = (team, ctx.Score(team));
+            var (outerPith, outerMech) = (_pith, _mech);
+            (_pith, _mech) = (pith, mech);
+            try
+            {
+                var team = new List<Operator>();
+                foreach (var o in seeds[i])
+                    if (team.Count < size && ctx.CanAdd(team, o)) team.Add(o);
+                Fill(team, pool, size, ctx);
+                Improve(team, pool, ctx);
+                solved[i] = (team, ctx.Score(team));
+            }
+            finally { (_pith, _mech) = (outerPith, outerMech); }
         });
         List<Operator>? best = null;
         var bestScore = double.NegativeInfinity;
@@ -396,7 +420,7 @@ public sealed class LineupRoutePlanner
         return score;
     }
 
-    /// <summary>Layers per round one operator adds: on covenants 大成 activates, and on ones only active now.</summary>
+    /// <summary>Layers per round one operator adds: on covenants 成型阵容 activates, and on ones only active now.</summary>
     public readonly record struct StackContribution(double Final, double Transition)
     {
         public static StackContribution operator +(StackContribution a, StackContribution b)
@@ -572,11 +596,13 @@ public sealed class LineupRoutePlanner
         IReadOnlyDictionary<string, string> transforms)
     {
         private readonly HashSet<string> _goalNames = goals.Select(g => g.Name).ToHashSet(StringComparer.Ordinal);
+        /// <summary>先小后大 stage: only 小盟约 score, so the stage does not wander into another core covenant.</summary>
+        private readonly IReadOnlySet<string>? _scored = def.SmallGoals is null || def.Stacking ? null : owner._additionalNames;
 
         private int TripleCount(IEnumerable<Operator> team) => team.Count(o => o.Tier > def.MaxTier);
 
         /// <summary>
-        /// 后期 (叠层): every 大成 covenant must stay active (only active covenants gain layers), then as many
+        /// 后期 (叠层): every 成型阵容 covenant must stay active (only active covenants gain layers), then as many
         /// layers per round on them as possible. Tank / healer still apply; overlap with the boss lineup is kept.
         /// </summary>
         private double StackingScore(List<Operator> team, Dictionary<string, int> counts)
@@ -604,10 +630,12 @@ public sealed class LineupRoutePlanner
         {
             var counts = owner.Count(team.Select(o => o.Name), def.Stacking ? transforms : NoTransforms);
             if (def.Stacking) return StackingScore(team, counts);
-            double score = PointWeight * (owner.Points(counts, goals) + (GoalPointFactor - 1) * owner.Points(counts, goals, _goalNames));
+            double score = PointWeight * (owner.Points(counts, goals, _scored) + (GoalPointFactor - 1) * owner.Points(counts, goals, _goalNames));
             foreach (var g in goals)
                 score += GoalMember * Math.Min(counts.GetValueOrDefault(g.Name), g.Count);
             score += owner.RoleScore(team, counts, finalActive, stageWeight, def.TerminalLevel);
+            foreach (var g in def.Required)
+                score -= RequiredMissing * Math.Max(0, g.Count - counts.GetValueOrDefault(g.Name));
             if (previousCounts is not null)
                 foreach (var g in goals)
                 {

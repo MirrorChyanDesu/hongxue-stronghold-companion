@@ -110,6 +110,7 @@ public partial class SimplePickerDialog : Window
     public SimplePickerDialog(string title, IEnumerable<PickerItem> items, string? currentKey, string? hint = null)
     {
         InitializeComponent();
+        WindowUiScale.PrepareCentered(this);
         TitleText.Text = title;
         Title = title;
         if (!string.IsNullOrWhiteSpace(hint))

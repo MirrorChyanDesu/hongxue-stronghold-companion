@@ -26,17 +26,28 @@ public sealed class GameConnectionService : IDisposable
     private int _refreshDisplay;
     private DateTime _nextDisplayRead;
     private AdbGameDisplay? _display;
+    private readonly Func<GameConnectionSettings, IReadOnlyList<AdbGameDisplay>> _findDisplays;
+    private Task<AdbGameDisplay>? _displayRead;
+    private long _displayReadRevision;
+    private IntPtr _confirmedWindow;
+    private bool _awaitingFocusedDisplay;
 
     public long CaptureRevision => Volatile.Read(ref _captureRevision);
     public AdbGameDisplay? CurrentDisplay => _display;
+    internal Task? PendingDisplayRead => _displayRead;
 
     public GameConnectionSettings Settings { get; private set; }
     public bool IsAdb => Settings.Source == GameCaptureSource.Adb;
     public string Status => Volatile.Read(ref _status);
 
     public GameConnectionService(GameConnectionSettings? settings = null, IntPtr selectedWindow = default)
+        : this(settings ?? new(), selectedWindow, AdbGameScreens.Find) { }
+
+    internal GameConnectionService(GameConnectionSettings settings, IntPtr selectedWindow,
+        Func<GameConnectionSettings, IReadOnlyList<AdbGameDisplay>> findDisplays)
     {
-        Settings = settings ?? new();
+        Settings = settings;
+        _findDisplays = findDisplays;
         _windowTitle = Settings.WindowTitle;
         _window = selectedWindow;
         if (_window != IntPtr.Zero)
@@ -47,16 +58,31 @@ public sealed class GameConnectionService : IDisposable
         if (IsAdb) _status = "等待 ADB 连接";
     }
 
-    public IntPtr FindGameWindow()
+    public IntPtr FindGameWindow() => FindGameWindow(User32.GetForegroundWindow());
+
+    internal IntPtr FindGameWindow(IntPtr foreground)
     {
         if (!IsAdb) return User32.FindArknightsWindow();
         lock (_windowLock)
         {
-            var foreground = User32.GetForegroundWindow();
             if (Settings.FollowFocusedGame && foreground != _lastForeground)
             {
                 _lastForeground = foreground;
-                Interlocked.Exchange(ref _refreshDisplay, 1);
+                // Desktop association is immediate; Android screen confirmation runs separately.
+                if (foreground != IntPtr.Zero && foreground != _window && _window != IntPtr.Zero && User32.IsWindow(_window))
+                {
+                    User32.GetWindowThreadProcessId(foreground, out var processId);
+                    if (processId == _windowProcessId && GetWindowKind(foreground) == GetWindowKind(_window)
+                        && GetWindowKind(foreground) != EmulatorKind.Unknown)
+                    {
+                        _window = foreground;
+                        _windowTitle = User32.GetWindowTitle(foreground);
+                        Settings = Settings with { WindowTitle = _windowTitle };
+                        _awaitingFocusedDisplay = _window != _confirmedWindow;
+                        Interlocked.Exchange(ref _captureRevision, Interlocked.Increment(ref _nextRevision));
+                        Interlocked.Exchange(ref _refreshDisplay, 1);
+                    }
+                }
             }
             if (_window != IntPtr.Zero && User32.IsWindow(_window))
             {
@@ -72,6 +98,59 @@ public sealed class GameConnectionService : IDisposable
             _window = matches[0].Handle;
             User32.GetWindowThreadProcessId(_window, out _windowProcessId);
             return _window;
+        }
+    }
+
+    // The injected query is the ADB process boundary; tests can hold it pending without starting an emulator.
+    internal bool RefreshDisplay()
+    {
+        lock (_captureLock)
+        {
+            if (_disposed) return false;
+            if (_displayRead is null && (_display is null || DateTime.UtcNow >= _nextDisplayRead || Volatile.Read(ref _refreshDisplay) != 0))
+            {
+                Interlocked.Exchange(ref _refreshDisplay, 0);
+                var settings = Settings;
+                _displayReadRevision = CaptureRevision;
+                _displayRead = Task.Run(() => AdbGameScreens.Select(_findDisplays(settings), settings));
+            }
+            if (_displayRead is { IsCompleted: true } read)
+            {
+                _displayRead = null;
+                var display = read.GetAwaiter().GetResult();
+                lock (_windowLock)
+                {
+                    if (_displayReadRevision != CaptureRevision)
+                    {
+                        Interlocked.Exchange(ref _refreshDisplay, 1);
+                        return false;
+                    }
+                    _nextDisplayRead = DateTime.UtcNow.AddSeconds(1);
+                    if (_awaitingFocusedDisplay && (!display.IsFocused || _display is not null && _confirmedWindow != _window
+                        && _display.DisplayId == display.DisplayId && _display.PackageName == display.PackageName && _display.PhysicalDisplayId == display.PhysicalDisplayId))
+                    {
+                        _status = "窗口已关联，等待 Android 焦点切换…";
+                        return false;
+                    }
+                    if (_display is null || _display.DisplayId != display.DisplayId || _display.PackageName != display.PackageName
+                        || _display.PhysicalDisplayId != display.PhysicalDisplayId)
+                    {
+                        _controller?.Dispose(); _controller = null;
+                        Interlocked.Exchange(ref _captureRevision, Interlocked.Increment(ref _nextRevision));
+                    }
+                    _display = display;
+                    _confirmedWindow = _window;
+                    _awaitingFocusedDisplay = false;
+                    if (_window != IntPtr.Zero) _windowTitle = User32.GetWindowTitle(_window);
+                    Settings = Settings with { AndroidPackageName = display.PackageName, AndroidDisplayId = display.DisplayId, WindowTitle = _windowTitle };
+                }
+            }
+            if (_awaitingFocusedDisplay || _display is null)
+            {
+                _status = "窗口已关联，正在后台确认游戏屏幕…";
+                return false;
+            }
+            return true;
         }
     }
 
@@ -111,6 +190,7 @@ public sealed class GameConnectionService : IDisposable
             if (_disposed || !IsAdb || DateTime.UtcNow < _retryAfter) return null;
             try
             {
+                FindGameWindow();
                 if (_controller is null)
                 {
                     if (!File.Exists(Settings.AdbPath))
@@ -118,38 +198,8 @@ public sealed class GameConnectionService : IDisposable
                     if (string.IsNullOrWhiteSpace(Settings.AdbSerial))
                         throw new IOException("请填写 ADB 连接地址或选择发现的设备");
                 }
-                var refreshDisplay = Interlocked.Exchange(ref _refreshDisplay, 0) != 0;
-                if (_display is null || DateTime.UtcNow >= _nextDisplayRead || refreshDisplay)
-                {
-                    var display = AdbGameScreens.Select(AdbGameScreens.Find(Settings), Settings);
-                    if (_display is null || _display.DisplayId != display.DisplayId || _display.PackageName != display.PackageName
-                        || _display.PhysicalDisplayId != display.PhysicalDisplayId)
-                    {
-                        _controller?.Dispose();
-                        _controller = null;
-                        _display = display;
-                        Interlocked.Exchange(ref _captureRevision, Interlocked.Increment(ref _nextRevision));
-                    }
-                    _display = display;
-                    Settings = Settings with { AndroidPackageName = display.PackageName, AndroidDisplayId = display.DisplayId };
-                    if (Settings.FollowFocusedGame && display.IsFocused)
-                    {
-                        lock (_windowLock)
-                        {
-                            var foreground = User32.GetForegroundWindow();
-                            User32.GetWindowThreadProcessId(foreground, out var processId);
-                            if (processId == _windowProcessId && GetWindowKind(foreground) != EmulatorKind.Unknown)
-                            {
-                                if (_window != foreground)
-                                    Interlocked.Exchange(ref _captureRevision, Interlocked.Increment(ref _nextRevision));
-                                _window = foreground;
-                                _windowTitle = User32.GetWindowTitle(foreground);
-                                Settings = Settings with { WindowTitle = _windowTitle };
-                            }
-                        }
-                    }
-                    _nextDisplayRead = DateTime.UtcNow.AddSeconds(1);
-                }
+                if (!RefreshDisplay()) return null;
+                var captureRevision = CaptureRevision;
                 if (_controller is null)
                 {
                     _status = "正在连接游戏屏幕…";
@@ -179,6 +229,8 @@ public sealed class GameConnectionService : IDisposable
                     image.TryResize(maxWidth, (int)Math.Round(height * (double)maxWidth / width));
                 if (!image.TryGetEncodedData(out byte[]? png) || png is null)
                     throw new IOException("ADB 画面编码失败");
+                FindGameWindow();
+                if (captureRevision != CaptureRevision) return null;
                 _status = $"ADB 已连接 · {_display!.Label} · {width}×{height}";
                 _retryAfter = default;
                 return png;
@@ -215,8 +267,12 @@ public sealed class GameConnectionService : IDisposable
         lock (_captureLock)
         {
             if (_disposed || _controller is null) return false;
+            FindGameWindow();
+            var revision = CaptureRevision;
+            if (_awaitingFocusedDisplay) return false;
             var display = AdbGameScreens.Select(AdbGameScreens.Find(Settings), Settings);
-            if (_display is null || display.DisplayId != _display.DisplayId || display.PackageName != _display.PackageName
+            FindGameWindow();
+            if (revision != CaptureRevision || _display is null || display.DisplayId != _display.DisplayId || display.PackageName != _display.PackageName
                 || display.PhysicalDisplayId != _display.PhysicalDisplayId)
             {
                 Interlocked.Exchange(ref _refreshDisplay, 1);

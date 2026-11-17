@@ -7,6 +7,65 @@ namespace ASPAssistant.Tests.Data;
 
 public class SettingsManagerTests : IDisposable
 {
+    [Theory]
+    [InlineData(MainWindowCloseBehavior.Ask)]
+    [InlineData(MainWindowCloseBehavior.MinimizeToTray)]
+    [InlineData(MainWindowCloseBehavior.Exit)]
+    public async Task CloseBehavior_RoundTrip(MainWindowCloseBehavior behavior)
+    {
+        await _manager.SaveMainWindowCloseBehaviorAsync(behavior);
+        (await new SettingsManager(_tempDir).LoadMainWindowCloseBehaviorAsync()).Should().Be(behavior);
+    }
+
+    [Fact]
+    public async Task CloseBehavior_MissingDefaultsToAsk()
+        => (await _manager.LoadMainWindowCloseBehaviorAsync()).Should().Be(MainWindowCloseBehavior.Ask);
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("{")]
+    [InlineData("\"Future\"")]
+    [InlineData("42")]
+    [InlineData("false")]
+    public async Task CloseBehavior_InvalidDefaultsToAskWithoutChangingFile(string json)
+    {
+        var path = Path.Combine(_tempDir, "close-behavior.json");
+        await File.WriteAllTextAsync(path, json);
+        (await _manager.LoadMainWindowCloseBehaviorAsync()).Should().Be(MainWindowCloseBehavior.Ask);
+        File.ReadAllText(path).Should().Be(json);
+    }
+
+    [Theory]
+    [InlineData(GameStartFixedTarget.None)]
+    [InlineData(GameStartFixedTarget.Lineups)]
+    [InlineData(GameStartFixedTarget.Planner)]
+    public async Task GameStartSettings_RoundTripThroughNewReader(GameStartFixedTarget fixedTarget)
+    {
+        var settings = new GameStartSettings { WithLineups = GameStartLineupPage.Pending,
+            WithoutLineups = GameStartPlannerPage.Goals, FixedTarget = fixedTarget };
+        await _manager.SaveGameStartSettingsAsync(settings);
+        (await new SettingsManager(_tempDir).LoadGameStartSettingsAsync()).Should().Be(settings);
+        await _manager.SaveGameStartSettingsAsync(settings with { FixedTarget = GameStartFixedTarget.None });
+        File.Exists(Path.Combine(_tempDir, "game-start.json.bak")).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("{")]
+    [InlineData("{\"WithLineups\":99}")]
+    [InlineData("{\"WithoutLineups\":99}")]
+    [InlineData("{\"FixedTarget\":99}")]
+    public async Task GameStartSettings_InvalidFileUsesDefaults(string json)
+    {
+        Directory.CreateDirectory(_tempDir);
+        await File.WriteAllTextAsync(Path.Combine(_tempDir, "game-start.json"), json);
+        (await _manager.LoadGameStartSettingsAsync()).Should().Be(new GameStartSettings());
+    }
+
+    [Fact]
+    public async Task GameStartSettings_FirstLaunchUsesDefaults()
+        => (await _manager.LoadGameStartSettingsAsync()).Should().Be(new GameStartSettings());
+
     [Fact]
     public async Task UiScaleOverrides_RoundTripAndInheritWithoutChangingGlobal()
     {
@@ -322,6 +381,7 @@ public class SettingsManagerTests : IDisposable
         var settings = await new SettingsManager(Path.Combine(_tempDir, "first-start")).LoadSidePanelPositionAsync();
         // Free movement by default; without a placement the panel docks beside the game once.
         settings.FreeMovement.Should().BeTrue();
+        settings.ForceTopmost.Should().BeFalse();
         settings.Placement.Should().BeNull();
         settings.FollowOffsetDip.Should().BeNull();
     }
@@ -334,6 +394,7 @@ public class SettingsManagerTests : IDisposable
         var settings = new SidePanelPositionSettings
         {
             FreeMovement = free,
+            ForceTopmost = !free,
             Placement = new SidePanelPlacement(-1280, 150, 310, 600),
             FollowOffsetDip = new SidePanelOffset(-900.5, 80.25),
         };
@@ -347,12 +408,24 @@ public class SettingsManagerTests : IDisposable
     {
         var saves = Enumerable.Range(0, 8).Select(i => _manager.SaveSidePanelPositionAsync(new SidePanelPositionSettings
         {
-            FreeMovement = i % 2 == 1, FollowOffsetDip = new SidePanelOffset(i, i * 2),
+            FreeMovement = i % 2 == 1, ForceTopmost = i % 2 == 1, FollowOffsetDip = new SidePanelOffset(i, i * 2),
         })).ToArray();
         await Task.WhenAll(saves);
         var saved = await new SettingsManager(_tempDir).LoadSidePanelPositionAsync();
         saved.FreeMovement.Should().BeTrue();
+        saved.ForceTopmost.Should().BeTrue();
         saved.FollowOffsetDip.Should().Be(new SidePanelOffset(7, 14));
+    }
+
+    [Fact]
+    public async Task SidePanelPosition_OldFileKeepsPlacementAndDefaultsForceTopmostOff()
+    {
+        await File.WriteAllTextAsync(Path.Combine(_tempDir, "side-panel-position.json"),
+            "{\"freeMovement\":false,\"placement\":{\"left\":-1280,\"top\":150,\"widthDip\":310,\"heightDip\":600}}");
+        var settings = await _manager.LoadSidePanelPositionAsync();
+        settings.ForceTopmost.Should().BeFalse();
+        settings.FreeMovement.Should().BeFalse();
+        settings.Placement.Should().Be(new SidePanelPlacement(-1280, 150, 310, 600));
     }
 
     [Theory]

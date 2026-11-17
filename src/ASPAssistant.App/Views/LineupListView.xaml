@@ -246,6 +246,8 @@
                                 <Button x:Name="track" Content="追踪" Style="{StaticResource CardPrimaryAction}" Click="OnTrackLineup"
                                         ToolTip="把这套阵容的干员加入追踪" />
                                 <Button Content="编辑" Style="{StaticResource CardAction}" Click="OnEditLineup" />
+                                <Button Content="查看自动路线" Style="{StaticResource CardAction}" Click="OnOpenAutoRoute"
+                                        Visibility="{Binding HasAutoRoute, Converter={StaticResource BoolToVis}}" />
                                 <Button Content="分享" Style="{StaticResource CardAction}" Click="OnShareLineup"
                                         Visibility="{Binding ShowManage, Converter={StaticResource BoolToVis}}" />
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4" Visibility="{Binding ShowManage, Converter={StaticResource BoolToVis}}">

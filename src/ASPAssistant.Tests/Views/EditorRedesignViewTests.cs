@@ -54,7 +54,11 @@ internal static class EditorRedesignViewTests
             var editor = new LineupEditorWindow(vm, strategies);
             Run(editor, wide, () =>
             {
+                ((Button)editor.FindName("SourcePageButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                editor.UpdateLayout(); Pump();
                 ((FrameworkElement)editor.FindName("SourcePanel")).IsVisible.Should().BeTrue();
+                ((Button)editor.FindName("LineupPageButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                editor.UpdateLayout(); Pump();
                 ((TextBox)editor.FindName("LineupNameBox")).ActualWidth.Should().BeGreaterThan(100);
                 ((FrameworkElement)((ItemsControl)editor.FindName("SlotsHost")).Items[0]).ActualWidth.Should().BeGreaterThanOrEqualTo(200);
                 Descendants<CheckBox>(editor).Should().Contain(c => Equals(c.Content, "精锐") && c.IsChecked == true);

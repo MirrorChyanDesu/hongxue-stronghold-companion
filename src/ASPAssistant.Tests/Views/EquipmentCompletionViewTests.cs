@@ -44,11 +44,11 @@ internal static class EquipmentCompletionViewTests
         {
             var pages = (ListBox)view.FindName("TrackingPageList");
             pages.SelectedIndex = 1; deploy.FocusOperator("角峰"); Pump();
-            var card = Desc<Grid>((StackPanel)deploy.FindName("PoolGroups")).Single(g => g.ToolTip is string t && t.StartsWith("角峰 · "));
+            var card = Desc<Grid>((StackPanel)deploy.FindName("PoolTrackedBody")).Single(g => g.ToolTip is string t && t.StartsWith("角峰 · "));
             card.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonUpEvent }); Pump();
             vm.OperatorProgress(vm.TrackedOperators.Single()).Should().Be("待精锐");
             vm.TrackedEquipment.Should().HaveCount(3);
-            card = Desc<Grid>((StackPanel)deploy.FindName("PoolGroups")).Single(g => g.ToolTip is string t && t.StartsWith("角峰 · "));
+            card = Desc<Grid>((StackPanel)deploy.FindName("PoolTrackedBody")).Single(g => g.ToolTip is string t && t.StartsWith("角峰 · "));
             Desc<Border>(card).Single(b => b.ToolTip is string t && t.StartsWith("普通 · "))
                 .RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonUpEvent }); Pump();
             vm.OperatorProgress(vm.TrackedOperators.Single()).Should().Be("已完成");

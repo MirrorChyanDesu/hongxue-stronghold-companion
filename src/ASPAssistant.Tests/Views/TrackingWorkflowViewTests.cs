@@ -20,10 +20,10 @@ internal static class TrackingWorkflowViewTests
     public static void VerifyEquipmentAndGroups()
     {
         const string gear = "名称很长的测试装备甲";
-        Operator[] operators = [new() { Name = "大成目标" }, new() { Name = "过渡目标" }];
+        Operator[] operators = [new() { Name = "成型阵容目标" }, new() { Name = "过渡目标" }];
         Equipment[] equipment = [new() { Name = gear }, new() { Name = "变形同构体" }];
         var vm = new TrackingViewModel();
-        vm.TrackLineup(new Lineup { Slots = [new() { OperatorName = "大成目标", Equipments = [gear, "变形同构体", "旧版已移除装备"] }],
+        vm.TrackLineup(new Lineup { Slots = [new() { OperatorName = "成型阵容目标", Equipments = [gear, "变形同构体", "旧版已移除装备"] }],
             EarlySlots = [new() { OperatorName = "过渡目标" }] });
         var view = new TrackingView { DataContext = vm };
         view.SetOperators(operators);
@@ -48,7 +48,7 @@ internal static class TrackingWorkflowViewTests
             finals.Visibility.Should().Be(Visibility.Collapsed);
             transitions.Visibility.Should().Be(Visibility.Visible);
             ((TextBlock)view.FindName("FinalCount")).Text.Should().Be("1 名");
-            vm.IsTracked("大成目标").Should().BeTrue();
+            vm.IsTracked("成型阵容目标").Should().BeTrue();
             transitionToggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             transitions.Visibility.Should().Be(Visibility.Collapsed);
             var gearCell = Descendants<EquipmentCell>(gears).Single(c => ((Equipment)c.DataContext).Name == gear);
@@ -56,7 +56,7 @@ internal static class TrackingWorkflowViewTests
             Layout(view, 280);
             acquiredEvents.Should().Be(1);
             vm.IsTracked(gear).Should().BeFalse();
-            vm.TrackedOperators.Single(e => e.Name == "大成目标").Equipments.Should().Contain(gear);
+            vm.TrackedOperators.Single(e => e.Name == "成型阵容目标").Equipments.Should().Contain(gear);
             finals.Visibility.Should().Be(Visibility.Collapsed, "state refresh must retain the user's collapse choice");
             filters.SelectedIndex = 2;
             Layout(view, 280);
@@ -192,7 +192,7 @@ internal static class TrackingWorkflowViewTests
         Layout(view, 280);
         finals.Items.Cast<TrackedCell>().Single(c => c.Name == "塔露拉").Progress.Should().Be("待精锐");
         finals.Items.Count.Should().Be(2);
-        transition.Items.Count.Should().Be(1);
+        transition.Items.Count.Should().Be(0, "the unselected early phase is retained but hidden");
         ((StackPanel)view.FindName("PastBody")).Visibility.Should().Be(Visibility.Collapsed);
         var before = ((ItemsControl)view.FindName("TrackedCovenantChips")).Items.Cast<TrackedCovenantChip>().ToArray();
         state.SetElite("塔露拉", true);

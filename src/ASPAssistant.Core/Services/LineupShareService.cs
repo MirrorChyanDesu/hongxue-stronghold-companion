@@ -49,6 +49,9 @@ public class LineupShareService
     public static string ContentFingerprint(Lineup lineup) => Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new
     {
         lineup.Name, lineup.Slots, lineup.EarlySlots, lineup.MidSlots, lineup.SupportSlots, lineup.Strategies, lineup.SourceUrl,
+        SklandGuide = lineup.SklandGuide,
+        EditorStages = lineup.EditorStages,
+        AutoRoute = lineup.AutoRoute,
         TargetCovenants = lineup.TargetCovenants.Count > 0 ? lineup.TargetCovenants : null,
         UpgradeReminders = lineup.UpgradeReminders.Count > 0 ? lineup.UpgradeReminders : null,
         UpgradeNotificationsEnabled = lineup.UpgradeNotificationsEnabled ? (bool?)true : null
@@ -153,6 +156,8 @@ public class LineupShareService
             throw new InvalidDataException(error);
         if (string.IsNullOrEmpty(lineup.Id))
             lineup.Id = Guid.NewGuid().ToString("N");
+        lineup.SklandGuide?.Validate();
+        if (lineup.EditorStages is { } stages) SklandGuideStage.ValidateAll(stages);
         _equipmentRules.Upgrade(lineup);
         return lineup;
     }

@@ -99,6 +99,33 @@ internal static class CoreBanViewTests
             lineups.VisibleLineups.Select(l => l.Name).Should().Equal("含双主");
             Save(view, theme, night, "core-ban");
 
+            ((ToggleButton)view.FindName("FilterToggle")).IsChecked = true;
+            vm.SetAvailableCovenants(["谢拉格", "精准", "突袭", "奥术"]); Pump();
+            var coreChip = Desc<ToggleButton>(view).Single(c => c.DataContext is FilterChip { Value: "炎" });
+            coreChip.IsEnabled.Should().BeTrue();
+            coreChip.IsChecked = true; Pump();
+            vm.FilteredOperators.Select(o => o.Name).Should().BeEquivalentTo("单主盟约", "双主盟约");
+            Card("单主盟约").IsBanned.Should().BeTrue();
+            Save(view, theme, night, "banned-core-selected");
+            vm.SelectedAvailabilityFilter = AvailabilityFilter.Available; Pump();
+            vm.FilteredOperators.Select(o => o.Name).Should().Equal("双主盟约");
+            vm.SelectedAvailabilityFilter = AvailabilityFilter.Unavailable; Pump();
+            vm.FilteredOperators.Select(o => o.Name).Should().Equal("单主盟约");
+            vm.SelectedAvailabilityFilter = AvailabilityFilter.All;
+            ((CheckBox)view.FindName("OnlyCurrentRunToggle")).IsChecked = true; Pump();
+            vm.CoreChips.Should().NotContain(c => c.Value == "炎");
+            Desc<ToggleButton>(view).Where(c => c.DataContext is FilterChip { Value: "炎" }).Should().BeEmpty();
+            vm.ActiveChips.Should().NotContain(c => c.Value == "炎");
+            Save(view, theme, night, "current-run-hides-banned-core");
+            ((CheckBox)view.FindName("OnlyCurrentRunToggle")).IsChecked = false; Pump();
+            coreChip = Desc<ToggleButton>(view).Single(c => c.DataContext is FilterChip { Value: "炎" });
+            coreChip.IsEnabled.Should().BeTrue();
+            coreChip.IsChecked.Should().BeFalse();
+            bans.BannedNames.Should().Equal("手动禁用");
+            Card("单主盟约").IsBanned.Should().BeTrue();
+            vm.ClearCovenantHighlights();
+            ((ToggleButton)view.FindName("FilterToggle")).IsChecked = false; Pump();
+
             ((ListBox)view.FindName("AvailabilityFilterList")).SelectedIndex = 2; Pump();
             vm.FilteredOperators.Select(o => o.Name).Should().BeEquivalentTo("单主盟约", "手动禁用");
             ((ListBox)view.FindName("AvailabilityFilterList")).SelectedIndex = 0;

@@ -95,6 +95,36 @@ public class ThemeAndHighlightTests(WpfTestHost ui) : IClassFixture<WpfTestHost>
     [Fact]
     public Task EmulatorFix_OwnedDialogTopmostAndMoveSnap() => ui.RunAsync(EmulatorFixViewTests.VerifyPanel, nameof(EmulatorFix_OwnedDialogTopmostAndMoveSnap));
 
+    [Theory]
+    [InlineData(GameShopTheme.Terminal, false)]
+    [InlineData(GameShopTheme.Terminal, true)]
+    [InlineData(GameShopTheme.Closure, false)]
+    [InlineData(GameShopTheme.Closure, true)]
+    [InlineData(GameShopTheme.Ursus, false)]
+    [InlineData(GameShopTheme.Ursus, true)]
+    public Task ForceTopmost_LinkedControlsAndLayers(GameShopTheme theme, bool night)
+        => ui.RunAsync(() => ForceTopmostViewTests.Verify(theme, night), $"ForceTopmost-{theme}-{night}");
+
+    [Theory]
+    [InlineData(GameShopTheme.Terminal, false)]
+    [InlineData(GameShopTheme.Terminal, true)]
+    [InlineData(GameShopTheme.Closure, false)]
+    [InlineData(GameShopTheme.Closure, true)]
+    [InlineData(GameShopTheme.Ursus, false)]
+    [InlineData(GameShopTheme.Ursus, true)]
+    public Task CloseBehavior_UnifiedDialogSettingsAndTray(GameShopTheme theme, bool night)
+        => ui.RunAsync(() => CloseBehaviorViewTests.Verify(theme, night), $"CloseBehavior-{theme}-{night}");
+
+    [Theory]
+    [InlineData(GameShopTheme.Terminal, false)]
+    [InlineData(GameShopTheme.Terminal, true)]
+    [InlineData(GameShopTheme.Closure, false)]
+    [InlineData(GameShopTheme.Closure, true)]
+    [InlineData(GameShopTheme.Ursus, false)]
+    [InlineData(GameShopTheme.Ursus, true)]
+    public Task DialogPosition_CentersFinalSizeAndPreservesDragging(GameShopTheme theme, bool night)
+        => ui.RunAsync(() => DialogPositionViewTests.Verify(theme, night), $"DialogPosition-{theme}-{night}");
+
     [Fact]
     public Task EmulatorFix_ConnectionLayoutAcrossThemes() => ui.RunAsync(EmulatorFixViewTests.VerifyConnectionLayout, nameof(EmulatorFix_ConnectionLayoutAcrossThemes));
 
@@ -460,6 +490,13 @@ public class ThemeAndHighlightTests(WpfTestHost ui) : IClassFixture<WpfTestHost>
 
     [Fact]
     public Task UpdateSettings_TrayAndHotkeys() => ui.RunAsync(UpdateAndTrayTests.Verify, nameof(UpdateSettings_TrayAndHotkeys));
+
+    [Theory]
+    [InlineData(GameShopTheme.Terminal, false)]
+    [InlineData(GameShopTheme.Closure, false)]
+    [InlineData(GameShopTheme.Closure, true)]
+    public Task Tracking_StageSelection(GameShopTheme theme, bool night)
+        => ui.RunAsync(() => TrackingStageViewTests.Verify(theme, night), $"{nameof(Tracking_StageSelection)}-{theme}-{night}");
 
     [Fact]
     public Task Tracking_RendersAcrossThemesAndWidths() => ui.RunAsync(TrackingWorkflowViewTests.Verify, nameof(Tracking_RendersAcrossThemesAndWidths));
@@ -1243,7 +1280,7 @@ public class ThemeAndHighlightTests(WpfTestHost ui) : IClassFixture<WpfTestHost>
                             {
                                 trackingView.FindName("MultiLineupTrackingToggle").Should().BeNull();
                                 trackingVm.TrackMultipleLineups.Should().BeTrue();
-                                // Tracked operators are compact cells grouped by role (大成 / 过渡 / 已过).
+                                // Tracked operators are compact cells grouped by role (成型阵容 / 过渡 / 已过).
                                 var finalCells = ((IEnumerable<TrackedCell>)((ItemsControl)trackingView.FindName("FinalCells")).ItemsSource).ToList();
                                 finalCells.Should().HaveCount(2);
                                 var trackedCell = finalCells.Single(c => c.Name == "烈夏");
@@ -1946,6 +1983,37 @@ public class ThemeAndHighlightTests(WpfTestHost ui) : IClassFixture<WpfTestHost>
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
     }
+
+    [Theory]
+    [InlineData(GameShopTheme.Closure, false)]
+    [InlineData(GameShopTheme.Closure, true)]
+    public Task SklandCompleteEditor(GameShopTheme theme, bool night)
+        => ui.RunAsync(() => SklandCompleteEditorViewTests.Verify(theme, night), nameof(SklandCompleteEditor));
+
+    [Theory]
+    [InlineData(GameShopTheme.Terminal, false)]
+    [InlineData(GameShopTheme.Closure, false)]
+    [InlineData(GameShopTheme.Closure, true)]
+    public Task AutoRecommend(GameShopTheme theme, bool night)
+        => ui.RunAsync(() => AutoPlanViewTests.Verify(theme, night), $"AutoRecommend-{theme}-{night}");
+
+    [Theory]
+    [InlineData(GameShopTheme.Terminal, false)]
+    [InlineData(GameShopTheme.Closure, false)]
+    [InlineData(GameShopTheme.Closure, true)]
+    public Task GameStartSettingsAndScaleRestore(GameShopTheme theme, bool night)
+        => ui.RunAsync(() => GameStartSettingsViewTests.Verify(theme, night), $"GameStartSettings-{theme}-{night}");
+
+    [Theory]
+    [InlineData(GameShopTheme.Terminal, false)]
+    [InlineData(GameShopTheme.Closure, false)]
+    [InlineData(GameShopTheme.Closure, true)]
+    public Task StageRepairPreview(GameShopTheme theme, bool night)
+        => ui.RunAsync(() => StageRepairViewTests.Verify(theme, night), $"StageRepairPreview-{theme}-{night}");
+
+    [Fact]
+    public Task Issue32_DesktopAssociationDoesNotWaitForAdb()
+        => ui.RunAsync(Issue32ViewTests.VerifyWindowAssociation, nameof(Issue32_DesktopAssociationDoesNotWaitForAdb));
 
     private static void Save(FrameworkElement element, string path)
     {

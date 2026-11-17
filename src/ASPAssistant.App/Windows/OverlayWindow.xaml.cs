@@ -1,4 +1,4 @@
-﻿// Modified for ASP Assistant Regulation on 2026-11-11; see NOTICE.
+// Modified for ASP Assistant Regulation on 2026-11-11; see NOTICE.
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -433,7 +433,7 @@ public partial class OverlayWindow : Window
 
     private static SolidColorBrush Freeze(SolidColorBrush brush) { brush.Freeze(); return brush; }
 
-    /// <summary>Green = 大成 (final) operator, orange = 过渡 (transition) operator of an imported route.</summary>
+    /// <summary>Green = 成型阵容 (final) operator, orange = 过渡 (transition) operator of an imported route.</summary>
     private static void SetMarkerColor(FrameworkElement marker, bool transition)
     {
         if (marker is Panel panel && panel.Children.OfType<Ellipse>().FirstOrDefault() is { } ellipse)

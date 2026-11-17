@@ -64,6 +64,7 @@ public partial class EquipmentPickerWindow : Window
     {
         _candidateMode = candidateMode;
         InitializeComponent();
+        WindowUiScale.PrepareCentered(this);
         var hide = hidden.ToHashSet(StringComparer.Ordinal);
         _rows = [.. equipment.Where(e => !hide.Contains(e.Name)).OrderBy(e => e.Tier).ThenBy(e => e.Name, StringComparer.CurrentCulture)
             .Select(e => new EquipmentPickRow(e, rules.EquipmentToCovenant.TryGetValue(e.Name, out var c) ? c : e.Type == EquipmentType.JobChange && e.JobChangeCovenant.Length > 0 ? e.JobChangeCovenant : null, candidateMode))];

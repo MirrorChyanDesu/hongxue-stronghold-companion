@@ -15,6 +15,7 @@
     <Geometry x:Key="IconEnemy">M 12 4 L 21 20 L 3 20 Z M 12 10 L 12 14.5 M 12 17.2 L 12 17.5</Geometry>
     <Geometry x:Key="IconSettings">M 19.30 9.88 L 21.85 10.28 L 21.85 13.72 L 19.30 14.12 L 18.66 15.66 L 20.18 17.75 L 17.75 20.18 L 15.66 18.66 L 14.12 19.30 L 13.72 21.85 L 10.28 21.85 L 9.88 19.30 L 8.34 18.66 L 6.25 20.18 L 3.82 17.75 L 5.34 15.66 L 4.70 14.12 L 2.15 13.72 L 2.15 10.28 L 4.70 9.88 L 5.34 8.34 L 3.82 6.25 L 6.25 3.82 L 8.34 5.34 L 9.88 4.70 L 10.28 2.15 L 13.72 2.15 L 14.12 4.70 L 15.66 5.34 L 17.75 3.82 L 20.18 6.25 L 18.66 8.34 Z M 12 8.8 A 3.2 3.2 0 1 0 12 15.2 A 3.2 3.2 0 1 0 12 8.8 Z</Geometry>
     <Geometry x:Key="IconMinimize">M 5 12 L 19 12</Geometry>
+    <Geometry x:Key="IconPin">M 8 3 L 16 3 M 9 3 L 9 9 L 6 14 L 18 14 L 15 9 L 15 3 M 12 14 L 12 22</Geometry>
     <Geometry x:Key="IconStar">M 12 3.5 L 14.6 8.8 L 20.5 9.7 L 16.2 13.8 L 17.2 19.6 L 12 16.9 L 6.8 19.6 L 7.8 13.8 L 3.5 9.7 L 9.4 8.8 Z</Geometry>
     <Geometry x:Key="IconBan">M 12 4 A 8 8 0 1 0 12 20 A 8 8 0 1 0 12 4 Z M 6.5 17.5 L 17.5 6.5</Geometry>
     <Geometry x:Key="IconSearch">M 11 4 A 7 7 0 1 0 11 18 A 7 7 0 1 0 11 4 Z M 20 20 L 16 16</Geometry>
@@ -942,14 +943,13 @@
         </Setter>
     </Style>
     <Style x:Key="DialogPrimaryButton" TargetType="Button" BasedOn="{StaticResource DialogSecondaryButton}">
-        <Setter Property="Foreground" Value="{DynamicResource OnAccentBrush}" />
-        <Setter Property="Background" Value="{DynamicResource AccentSolidBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource AccentSolidBrush}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="{DynamicResource PrimaryActionBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryActionBrush}" />
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="Margin" Value="0" />
     </Style>
     <Style x:Key="DialogDangerButton" TargetType="Button" BasedOn="{StaticResource DialogSecondaryButton}">
-        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
         <Setter Property="Background" Value="{DynamicResource DangerTintBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource DangerBorderBrush}" />
     </Style>

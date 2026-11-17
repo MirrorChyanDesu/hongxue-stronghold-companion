@@ -51,6 +51,7 @@ public partial class OperatorPickerWindow : Window
         var list = operators.OrderBy(op => op.Tier).ThenBy(op => op.Name, StringComparer.CurrentCulture).ToList();
         _effects = context is null ? new() : list.GroupBy(o => o.Name).ToDictionary(g => g.Key, g => EffectFor(g.First(), context));
         InitializeComponent();
+        WindowUiScale.PrepareCentered(this);
         var style = new Style(typeof(ListBoxItem), OperatorsList.ItemContainerStyle);
         style.Setters.Add(new Setter(IsEnabledProperty, new Binding { Converter = new FuncConverter(v => v is Operator o && Unavailable(o) is null) }));
         style.Setters.Add(new Setter(ToolTipProperty, new Binding { Converter = new FuncConverter(v => v is Operator o ? Unavailable(o) : null) }));

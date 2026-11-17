@@ -61,7 +61,7 @@ public sealed record DeployPoolGroup(DeployPoolGroupKind Kind, string Title, str
 public static class DeployPoolBuilder
 {
     /// <summary>
-    /// 最终 / 过渡 come from the tracking; 扩展池 = untracked operators sharing a covenant with the 大成 operators
+    /// 最终 / 过渡 come from the tracking; 扩展池 = untracked operators sharing a covenant with the 成型阵容 operators
     /// (so the player rarely needs to search); 其他 = added by hand.
     /// </summary>
     public static IReadOnlyList<DeployPoolGroup> Build(IEnumerable<TrackingEntry> tracked,
@@ -100,7 +100,7 @@ public static class DeployPoolBuilder
             .Distinct().Select(n => Item(n, Covs(Op(n)), true)).ToList();
 
         var groups = new List<DeployPoolGroup>();
-        if (finals.Count > 0) groups.Add(new(DeployPoolGroupKind.Final, "大成干员", "获取与精锐状态", finals));
+        if (finals.Count > 0) groups.Add(new(DeployPoolGroupKind.Final, "成型阵容干员", "获取与精锐状态", finals));
         if (transitions.Count > 0) groups.Add(new(DeployPoolGroupKind.Transition, "过渡干员", "按阶段保留", transitions));
         if (extension.Count > 0)
             groups.Add(new(DeployPoolGroupKind.Extension, "扩展池",

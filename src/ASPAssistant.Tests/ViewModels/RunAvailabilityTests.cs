@@ -18,7 +18,7 @@ public class RunAvailabilityTests
     }
 
     [Fact]
-    public void OnlyCurrentRunHidesUnavailableChoicesAndRemovesInvisibleFilters()
+    public void OnlyCurrentRunLimitsCoreButKeepsAllAdditionalChoicesAndTheirSelection()
     {
         var vm = new OperatorBrowseViewModel();
         vm.LoadOperators([
@@ -26,18 +26,23 @@ public class RunAvailabilityTests
             new() { Name = "乙", CoreCovenants = ["维多利亚"], AdditionalCovenants = ["坚守"] }
         ]);
         vm.HasRunInfo.Should().BeFalse();
+        vm.SetCovenantBanChecker(c => c == "炎");
         vm.SetCoreCovenantFilters(["炎"]);
         vm.SetOtherCovenantFilters(["精准"]);
         vm.SetAvailableCovenants(["维多利亚", "坚守"]);
         vm.OnlyCurrentRun = true;
         vm.AvailableCoreCovenants.Should().Equal("", "维多利亚");
-        vm.AvailableOtherCovenants.Should().Equal("", "坚守");
-        vm.ActiveFilterTags.Should().NotContain("炎").And.NotContain("精准");
-        vm.FilteredOperators.Should().HaveCount(2);
+        vm.CoreChips.Should().NotContain(c => c.Value == "炎");
+        vm.AvailableOtherCovenants.Should().Equal("", "坚守", "精准");
+        vm.ActiveFilterTags.Should().NotContain("炎").And.Contain("精准");
+        vm.OtherChips.Single(c => c.Value == "精准").IsSelected.Should().BeTrue();
+        vm.FilteredOperators.Select(o => o.Name).Should().Equal("甲");
         vm.ClearCovenantHighlights();
         vm.HasRunInfo.Should().BeFalse();
         vm.OnlyCurrentRun.Should().BeFalse();
         vm.AvailableCoreCovenants.Should().Contain("炎");
+        vm.CoreChips.Single(c => c.Value == "炎").IsBlocked.Should().BeFalse();
+        vm.CoreChips.Single(c => c.Value == "炎").IsSelected.Should().BeFalse();
         vm.AvailableOtherCovenants.Should().Contain("精准");
     }
 

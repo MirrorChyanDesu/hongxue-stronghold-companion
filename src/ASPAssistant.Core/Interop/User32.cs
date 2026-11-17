@@ -39,9 +39,9 @@ public static class User32
     [DllImport("user32.dll")]
     public static extern IntPtr GetWindow(IntPtr hwnd, uint command);
 
-    public static void SetWindowLayer(IntPtr hwnd, bool topmost)
+    public static void SetWindowLayer(IntPtr hwnd, IntPtr insertAfter)
     {
-        if (!SetWindowPos(hwnd, topmost ? new IntPtr(-1) : new IntPtr(1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010))
+        if (!SetWindowPos(hwnd, insertAfter, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010))
             throw new Win32Exception(Marshal.GetLastWin32Error());
     }
 

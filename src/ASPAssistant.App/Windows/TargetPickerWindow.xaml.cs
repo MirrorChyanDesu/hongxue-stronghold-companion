@@ -31,6 +31,7 @@ public partial class TargetPickerWindow : Window
         IReadOnlyList<TargetCovenant> existing, Func<string, bool> hasSecond)
     {
         InitializeComponent();
+        WindowUiScale.PrepareCentered(this);
         _late = late;
         _hasSecond = hasSecond;
         _infos = covenants.ToDictionary(c => c.Name, StringComparer.Ordinal);

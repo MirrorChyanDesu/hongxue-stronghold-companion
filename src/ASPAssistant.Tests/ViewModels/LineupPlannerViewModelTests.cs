@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.Text.Json;
+using ASPAssistant.Core.Data;
 using ASPAssistant.Core.Models;
 using ASPAssistant.Core.Services;
 using ASPAssistant.Core.ViewModels;
@@ -310,8 +313,8 @@ public class LineupPlannerViewModelTests
         await vm.PlanRouteAsync(vm.VisibleLineups[0]);
 
         vm.ShowRoute.Should().BeTrue();
-        vm.RouteStages.Select(s => s.Title).Should().Equal("开局", "前期", "中期", "后期", "大成");
-        vm.RouteSteps.Select(s => s.Name).Should().Equal("开局", "前期", "中期", "后期", "大成");
+        vm.RouteStages.Select(s => s.Title).Should().Equal("开局", "前期", "中期", "后期", "成型阵容");
+        vm.RouteSteps.Select(s => s.Name).Should().Equal("开局", "前期", "中期", "后期", "成型阵容");
         // Terminal level unknown: 开局 is the current stage and the only one open
         vm.RouteStages.Count(s => s.IsExpanded).Should().Be(1);
         vm.RouteStages[0].IsCurrent.Should().BeTrue();
@@ -325,8 +328,10 @@ public class LineupPlannerViewModelTests
         vm.RouteStages.Should().BeEmpty();
     }
 
-    [Fact]
-    public async Task SavedRouteKeepsTheStagesAsLineupPhases()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SavedRouteKeepsTheStagesAsLineupPhases(bool renamed)
     {
         var (vm, _) = Create();
         Lineup? saved = null;
@@ -336,13 +341,75 @@ public class LineupPlannerViewModelTests
         await vm.PendingSearch!;
         await vm.PlanRouteAsync(vm.VisibleLineups[0]);
 
+        if (renamed)
+            for (int index = 0; index < vm.RouteStages.Count; index++)
+            {
+                var stage = vm.RouteStages[index];
+                vm.RouteStages[index] = new RouteStageItem { Title = $"路线阶段{index + 1}", IsFinal = stage.IsFinal,
+                    Operators = stage.Operators, IsStacking = stage.IsStacking, StrategyPiece = stage.StrategyPiece };
+            }
+        var expectedNames = vm.RouteStages.OrderByDescending(s => s.IsFinal).Select(s => s.Title).ToArray();
         vm.SaveRouteCommand.Execute(null);
 
         saved.Should().NotBeNull();
         saved!.Slots.Select(s => s.OperatorName).Should().BeEquivalentTo(vm.VisibleLineups[0].Source.Operators.Select(o => o.Name));
-        saved.EarlySlots.Select(s => s.OperatorName).Should().Equal(vm.RouteStages.Single(s => s.Title == "前期").Operators.Select(o => o.Name));
-        saved.MidSlots.Select(s => s.OperatorName).Should().Equal(vm.RouteStages.Single(s => s.Title == "中期").Operators.Select(o => o.Name));
-        saved.SupportSlots.Select(s => s.OperatorName).Should().OnlyContain(n => !saved.Slots.Any(f => f.OperatorName == n));
+        saved.EarlySlots.Select(s => s.OperatorName).Should().Equal(vm.RouteStages[1].Operators.Select(o => o.Name));
+        saved.MidSlots.Select(s => s.OperatorName).Should().Equal(vm.RouteStages[2].Operators.Select(o => o.Name));
+        saved.SupportSlots.Should().BeEmpty("后期 is now its own complete page");
+        saved.EditorStages!.Select(s => s.Name).Should().Equal(vm.RouteStages.OrderByDescending(s => s.IsFinal).Select(s => s.Title));
+        saved.EditorStages.Select(s => s.Id).Should().OnlyHaveUniqueItems();
+        saved.EditorStages.OrderBy(s => s.StartRound).Select(s => (s.StartRound, s.EndRound)).Should()
+            .Equal((1, 3), (4, 6), (7, 9), (10, 12), (13, 15));
+        foreach (var stage in saved.EditorStages)
+        {
+            var expected = vm.RouteStages.Single(s => s.Title == stage.Name).Operators.Select(o => o.Name);
+            if (stage.IsFinal) stage.Slots.Select(s => s.OperatorName).Should().BeEquivalentTo(expected);
+            else stage.Slots.Select(s => s.OperatorName).Should().Equal(expected);
+        }
+        var operators = vm.RouteStages.SelectMany(s => s.Operators).Select(o => o.Operator).OfType<Operator>().DistinctBy(o => o.Name).ToList();
+        var calculator = new CovenantCalculator(operators, [], new Dictionary<string, string>());
+        var folder = Path.Combine(Path.GetTempPath(), "saved-route-stages-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var store = new ASPAssistant.Core.Data.LineupStore(folder, EquipmentTestData.Rules);
+            await store.SaveAsync(saved);
+            var shared = await new LineupShareService(EquipmentTestData.Rules, folder).ImportAsync(
+                System.Text.Json.JsonSerializer.Serialize((await store.LoadAllAsync()).Single()));
+            var editor = new LineupEditorViewModel(shared, operators, [], calculator);
+            editor.PhaseLabels.Values.Should().Equal(expectedNames);
+            editor.ValidationError.Should().BeNullOrEmpty();
+            foreach (var phase in editor.PhaseLabels.Keys)
+            {
+                editor.SelectPhase(phase);
+                var savedStage = saved.EditorStages.Single(s => s.Name == editor.CurrentStage.Name);
+                editor.CurrentStage.StartRound.Should().Be(savedStage.StartRound);
+                editor.CurrentStage.EndRound.Should().Be(savedStage.EndRound);
+                editor.Slots.Where(s => s.OperatorName.Length > 0).Select(s => s.OperatorName).Should()
+                    .Equal(saved.EditorStages.Single(s => s.Name == editor.CurrentStage.Name).Slots.Select(s => s.OperatorName));
+            }
+            var tracking = new TrackingViewModel(); tracking.TrackLineup(editor.ToLineup());
+            tracking.StageChoices.Select(c => c.Label).Should().Equal(expectedNames);
+            tracking.AutomaticStageSwitch.Should().BeFalse();
+            foreach (var choice in tracking.StageChoices)
+            {
+                tracking.SelectStage(choice);
+                tracking.ActiveEntries.Where(e => e.Type == TrackingType.Operator).Select(e => e.Name).Should()
+                    .BeEquivalentTo(saved.EditorStages.Single(s => s.Id == choice.StageId).Slots.Select(s => s.OperatorName));
+            }
+            tracking.SetAutomaticStageSwitch(true);
+            for (int round = 1; round <= 15; round++)
+            {
+                tracking.Economy = new ShopEconomy(round, 10, 3, false, null, true);
+                tracking.SelectedStageChoice!.Label.Should().Be(vm.RouteStages[(round - 1) / 3].Title);
+            }
+            tracking.Economy = new ShopEconomy(16, 10, 3, false, null, true);
+            tracking.SelectedStageChoice!.Label.Should().Be(vm.RouteStages.Single(s => s.IsFinal).Title);
+            tracking.SelectStage(tracking.StageChoices.Single(c => c.StageId == "early"));
+            tracking.AutomaticStageSwitch.Should().BeFalse();
+            tracking.Economy = new ShopEconomy(13, 10, 3, false, null, true);
+            tracking.SelectedStageChoice!.StageId.Should().Be("early");
+        }
+        finally { Directory.Delete(folder, true); }
     }
 
     [Fact]
@@ -367,6 +434,15 @@ public class LineupPlannerViewModelTests
         var mech = saved.Slots.Single(s => s.OperatorName == LineupEquipmentService.MechName);
         mech.Equipments.Should().StartWith(LineupEquipmentService.Shapeshifter);
         mech.Equipments.Should().HaveCount(item.Source.MechCovenants.Count + 1);
+        await vm.PlanRouteAsync(item); vm.SaveRouteCommand.Execute(null);
+        saved.EditorStages!.Select(s => s.Name).Should().Equal(vm.RouteStages.OrderByDescending(s => s.IsFinal).Select(s => s.Title));
+        foreach (var stage in saved.EditorStages)
+        {
+            var piece = stage.Slots.Single(s => s.OperatorName == LineupEquipmentService.MechName);
+            piece.IsElite.Should().Be(item.Source.MechElite);
+            if (stage.IsFinal || vm.RouteStages.Single(s => s.Title == stage.Name).IsStacking) piece.Equipments.Should().Equal(mech.Equipments);
+            else piece.Equipments.Should().BeEmpty();
+        }
     }
 
     [Fact]
@@ -392,6 +468,7 @@ public class LineupPlannerViewModelTests
         vm.RepairSummary.Should().StartWith("固定没被禁的 4 人，替补 2 人");
         vm.VisibleLineups.Should().NotBeEmpty();
         var first = vm.VisibleLineups[0];
+        await vm.PreviewStageRepairCommand.ExecuteAsync(first);
         first.RepairText.Should().StartWith("炎5、炎6 → ");
         first.LineupName.Should().Be("炎 速攻（修补）");
 
@@ -429,6 +506,7 @@ public class LineupPlannerViewModelTests
         vm.VisibleLineups.Should().NotBeEmpty();
         Lineup? saved = null;
         vm.OverwriteRequested += value => saved = value;
+        await vm.PreviewStageRepairCommand.ExecuteAsync(vm.VisibleLineups[0]);
         vm.OverwriteLineupCommand.Execute(vm.VisibleLineups[0]);
         saved!.Slots.Single(s => s.OperatorName == LineupEquipmentService.MechName).CandidateEquipments.Single().Name.Should().Be("候选盾");
         saved.EarlySlots.Should().BeEquivalentTo(source.EarlySlots);
@@ -468,5 +546,167 @@ public class LineupPlannerViewModelTests
                 calculator.Compute(saved).Single(s => s.Name == "炎").Count.Should().BeGreaterThanOrEqualTo(6);
             }
         }
+    }
+
+    [Fact]
+    public async Task Repair_StagePreviewIsInvalidatedByBansAndLeavingRepair()
+    {
+        var (vm, bans) = Create();
+        var source = new Lineup { Slots = [.. Enumerable.Range(1, 6).Select(i => new LineupSlot { OperatorName = $"炎{i}" })],
+            EarlySlots = [new() { OperatorName = "炎6" }, new() { OperatorName = "维1" }], TargetCovenants = [new() { Name = "炎", Tier = 2 }] };
+        bans.SetBans(["炎6"]); vm.BeginRepair(source, source.TargetCovenants, ["炎6"]); vm.IsActive = true; await vm.PendingSearch!;
+        var item = vm.VisibleLineups[0];
+        await vm.PreviewStageRepairCommand.ExecuteAsync(item);
+        item.CanUseRepair.Should().BeTrue();
+        Lineup? tracked = null; vm.TrackRequested += value => tracked = value;
+        vm.TrackLineupCommand.Execute(item);
+        tracked!.EarlySlots.Should().NotContain(s => s.OperatorName == "炎6");
+        bans.SetBans(["炎6", "炎5"]);
+        item.StageRepair.Should().BeNull(); item.CanUseRepair.Should().BeFalse();
+        Lineup? saved = null; vm.SaveRequested += value => saved = value;
+        vm.SaveLineupCommand.Execute(item); saved.Should().BeNull("a stale preview cannot save after input changes");
+        await vm.PendingSearch!;
+        item = vm.VisibleLineups[0];
+        var running = vm.PreviewStageRepairCommand.ExecuteAsync(item);
+        vm.EndRepairCommand.Execute(null); await running;
+        item.StageRepair.Should().BeNull("a cancelled preview must not publish after leaving repair");
+    }
+
+    [Fact]
+    public async Task Repair_UnknownStageMemberBlocksAllSaveAndTrackPaths()
+    {
+        var (vm, bans) = Create();
+        var source = new Lineup { Slots = [.. Enumerable.Range(1, 6).Select(i => new LineupSlot { OperatorName = $"炎{i}" })],
+            EarlySlots = [new() { OperatorName = "未知干员" }], TargetCovenants = [new() { Name = "炎", Tier = 2 }] };
+        bans.SetBans(["炎6"]); vm.BeginRepair(source, source.TargetCovenants, ["炎6"]); vm.IsActive = true; await vm.PendingSearch!;
+        var item = vm.VisibleLineups[0]; await vm.PreviewStageRepairCommand.ExecuteAsync(item);
+        item.StageRepair!.CanSave.Should().BeFalse();
+        int writes = 0; vm.SaveRequested += _ => writes++; vm.TrackRequested += _ => writes++; vm.OverwriteRequested += _ => writes++;
+        vm.SaveLineupCommand.Execute(item); vm.TrackLineupCommand.Execute(item); vm.OverwriteLineupCommand.Execute(item);
+        writes.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    public async Task Repair_StageLineupsStayConsistentAfterSaveReopenAndTracking(bool imported, bool asCopy)
+    {
+        var (vm, bans) = Create();
+        var source = new Lineup { Id = "stage-repair", Name = "阶段修补",
+            Slots = [.. Enumerable.Range(1, 6).Select(i => new LineupSlot { OperatorName = $"炎{i}" })],
+            TargetCovenants = [new() { Name = "炎", Tier = 2 }] };
+        source.Slots[0].IsElite = true;
+        source.Slots[0].Equipments = ["坚守盾牌"];
+        source.Slots[0].CoreEquipments = ["坚守盾牌"];
+        source.Slots[0].CandidateEquipments = [new() { Name = "歌利亚头盔", IsPriority = true }];
+        source.Slots[0].Tags = [LineupTag.阵容核心];
+        source.Slots[0].GuideLoadout = new() { CharId = "char_fire1", SkillId = "skill1", ModuleId = "module1" };
+        var stages = new List<SklandGuideStage>
+        {
+            new() { Id = "opening", Name = "第 1–3 回合", StartRound = 1, EndRound = 3,
+                Slots = [new() { OperatorName = "炎6", Equipments = ["可靠怀表"] }, new() { OperatorName = "维1" }],
+                OperationIdea = "原开局讲解", RecommendedEquipments = ["可靠怀表"] },
+            new() { Id = "formed-custom-id", Name = "成型自定义名称", IsFinal = true,
+                Slots = JsonSerializer.Deserialize<List<LineupSlot>>(JsonSerializer.Serialize(source.Slots))!,
+                ActiveCovenants = ["炎"], OperationIdea = "原成型讲解", RecommendedEquipments = ["歌利亚头盔"] },
+            new() { Id = "empty", Name = "空阶段", StartRound = 4, EndRound = 5 }
+        };
+        if (imported)
+            source.SklandGuide = new() { GuideId = "original-guide", Author = "原作者", ApplicableScope = "原适用范围", Stages = stages,
+                OriginalGuide = JsonSerializer.SerializeToElement(new { text = "原攻略数据" }) };
+        else source.EditorStages = stages;
+        var original = JsonSerializer.Serialize(source);
+        var pool = new DeployPoolState();
+        pool.SetCount("炎1", 2); pool.SetElite("炎1", true);
+        var tracking = new TrackingViewModel();
+        tracking.SetDeployPool(pool); tracking.TrackLineup(source);
+        tracking.ToggleAcquired("坚守盾牌");
+        var acquired = JsonSerializer.Serialize(pool);
+        bans.SetBans(["炎6"]);
+        vm.BeginRepair(source, source.TargetCovenants, ["炎6"]);
+        vm.IsActive = true;
+        await vm.PendingSearch!;
+        vm.VisibleLineups.Should().NotBeEmpty();
+        var item = vm.VisibleLineups[0];
+        Lineup? saved = null;
+        vm.SaveRequested += value => saved = value;
+        vm.OverwriteRequested += value => saved = value;
+        var command = asCopy ? vm.SaveLineupCommand : vm.OverwriteLineupCommand;
+        command.Execute(item);
+        saved.Should().BeNull("stage repairs must be previewed before saving");
+        await vm.PreviewStageRepairCommand.ExecuteAsync(item);
+        item.StageRepair!.CanSave.Should().BeTrue();
+        command.Execute(item);
+        var timer = Stopwatch.StartNew();
+        var allocated = GC.GetAllocatedBytesForCurrentThread();
+        for (int i = 0; i < 100; i++) command.Execute(item);
+        timer.Stop();
+        File.WriteAllText(Path.Combine(TestOutput.Directory, $"repair-stage-{imported}-{asCopy}-performance.json"),
+            JsonSerializer.Serialize(new { Saves = 100, Milliseconds = timer.Elapsed.TotalMilliseconds,
+                Bytes = GC.GetAllocatedBytesForCurrentThread() - allocated }));
+        saved.Should().NotBeNull();
+        saved!.Slots.Should().NotContain(s => s.OperatorName == "炎6");
+        saved.Slots.Should().Contain(s => s.OperatorName == "炎突");
+        saved.Slots.Single(s => s.OperatorName == "炎1").Should().BeEquivalentTo(source.Slots[0]);
+        JsonSerializer.Serialize(source).Should().Be(original);
+        if (asCopy) saved.Id.Should().NotBe(source.Id);
+        else saved.Id.Should().Be(source.Id);
+        var repairedStages = saved.SklandGuide?.Stages ?? saved.EditorStages!;
+        var final = repairedStages.Single(s => s.IsFinal);
+        final.Should().BeEquivalentTo(stages.Single(s => s.IsFinal), options => options.Excluding(s => s.Slots));
+        final.Slots.Should().BeEquivalentTo(saved.Slots, options => options.WithStrictOrdering());
+        var opening = repairedStages.Single(s => s.Id == "opening");
+        opening.Should().BeEquivalentTo(stages[0], options => options.Excluding(s => s.Slots));
+        opening.Slots.Should().HaveCount(2).And.NotContain(s => s.OperatorName == "炎6");
+        opening.Slots.Single(s => s.OperatorName == "维1").Should().BeEquivalentTo(stages[0].Slots[1]);
+        repairedStages.Single(s => s.Id == "empty").Slots.Should().BeEmpty();
+        var operators = Enumerable.Range(1, 6).Select(i => Op($"炎{i}", "炎"))
+            .Concat([Op("炎突", "炎"), Op("维1", "维多利亚")]).ToList();
+        var calculator = new CovenantCalculator(operators, vm.AllCovenants.Select(c => c.Info).ToList(),
+            EquipmentTestData.Rules.EquipmentToCovenant.ToDictionary(p => p.Key, p => p.Value));
+        var folder = Path.Combine(Path.GetTempPath(), "repair-stages-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            var store = new LineupStore(folder, EquipmentTestData.Rules);
+            await store.SaveAsync(source);
+            var storedOriginal = JsonSerializer.Serialize(source);
+            await store.SaveAsync(saved);
+            var loaded = (await store.LoadAllAsync()).Single(l => l.Id == saved.Id);
+            var reopened = new LineupEditorViewModel(loaded, operators, [], calculator);
+            reopened.SelectPhase(LineupPhase.后期);
+            reopened.Slots.Where(s => s.OperatorName.Length > 0).Should().BeEquivalentTo(saved.Slots, options => options.WithStrictOrdering());
+            var resaved = reopened.ToLineup();
+            resaved.Slots.Should().BeEquivalentTo(saved.Slots, options => options.WithStrictOrdering());
+            var shared = await new LineupShareService(EquipmentTestData.Rules, folder).ImportAsync(JsonSerializer.Serialize(resaved));
+            shared.Slots.Should().BeEquivalentTo(saved.Slots, options => options.WithStrictOrdering());
+            tracking.SelectStage(tracking.StageChoices.Single(c => c.StageId == "opening"));
+            tracking.SetAutomaticStageSwitch(true);
+            if (asCopy)
+            {
+                tracking.TrackMultipleLineups = true;
+                tracking.TrackLineup(shared);
+                tracking.TrackedLineupIds.Should().Contain(source.Id);
+            }
+            else
+            {
+                tracking.ApplyTrackedLineup(shared);
+                tracking.SelectedStageChoice!.StageId.Should().Be("opening");
+                tracking.AutomaticStageSwitch.Should().BeTrue();
+            }
+            tracking.SelectStage(tracking.StageChoices.Single(c => c.LineupId == shared.Id && c.StageId == final.Id));
+            tracking.ActiveEntries.Where(e => e.Type == TrackingType.Operator && e.Origins.Any(o => o.LineupId == shared.Id && o.StageId == final.Id)).Select(e => e.Name)
+                .Should().BeEquivalentTo(saved.Slots.Select(s => s.OperatorName));
+            tracking.TrackedOperators.Single(e => e.Name == "炎1").IsAcquired.Should().BeTrue();
+            tracking.TrackedEquipment.Single(e => e.Name == "坚守盾牌").IsAcquired.Should().BeTrue();
+            tracking.SelectStage(tracking.StageChoices.Single(c => c.LineupId == shared.Id && c.StageId == "opening"));
+            tracking.ActiveEntries.Where(e => e.Type == TrackingType.Operator && e.Origins.Any(o => o.LineupId == shared.Id && o.StageId == "opening"))
+                .Select(e => e.Name).Should().BeEquivalentTo(opening.Slots.Select(s => s.OperatorName));
+            JsonSerializer.Serialize(pool).Should().Be(acquired);
+            JsonSerializer.Serialize(source).Should().Be(storedOriginal);
+        }
+        finally { Directory.Delete(folder, true); }
     }
 }

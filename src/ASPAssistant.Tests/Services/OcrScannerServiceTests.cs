@@ -390,11 +390,12 @@ public class OcrScannerServiceTests
         var money = 20;
         _ocr.Setup(e => e.RecognizeLineAsync(It.IsAny<byte[]>(), It.Is<int>(x => x > 1700), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()))
             .Returns((byte[] _, int x, int y, int _, int _) => Task.FromResult<IReadOnlyList<OcrTextResult>>([new(money.ToString(), (x, y, 20, 30))]));
+        var catalog = eligible ? _names.ToHashSet(StringComparer.Ordinal) : new HashSet<string>();
         using var scanner = new OcrScannerService(() => _screenshot, new GarrisonOcrStrategy(),
             new ShopReader(_ocr.Object, _names) { Theme = GameShopTheme.Closure }, _ocr.Object, new(), _names)
         {
             EconomyReader = reader,
-            PurchaseTargets = () => eligible ? new HashSet<string> { purchased } : new HashSet<string>(),
+            PurchaseTargets = () => catalog,
             AutomaticPurchaseTracking = true,
         };
         var results = new List<string>();

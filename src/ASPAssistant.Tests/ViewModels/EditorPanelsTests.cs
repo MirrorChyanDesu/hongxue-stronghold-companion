@@ -64,7 +64,7 @@ public class EditorPanelsTests
     {
         var vm = Create();
         vm.SetStrategies([new() { StrategyId = "band_jesica", Tags = [StrategyTag.阵容核心, StrategyTag.优选] }, new() { StrategyId = "band_mess" }]);
-        vm.StrategySlots.Should().HaveCount(LineupEditorViewModel.MaxSlots);
+        vm.StrategySlots.Should().HaveCount(LineupEditorViewModel.MaxStrategySlots);
         vm.ToLineup().Strategies.Select(s => (s.StrategyId, s.Tags.Count)).Should().Equal(("band_jesica", 2), ("band_mess", 0));
         vm.SetStrategies([]);
         vm.ToLineup().Strategies.Should().BeEmpty();

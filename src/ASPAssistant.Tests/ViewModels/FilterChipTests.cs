@@ -76,8 +76,16 @@ public class FilterChipTests
         vm.LoadOperators(Ops);
         vm.SetBanChecker(banned.Contains);
         vm.SetCovenantBanChecker(c => c is "炎" or "迅捷");
-        vm.CoreChips.Single(c => c.Value == "炎").IsBlocked.Should().BeTrue();
-        vm.CoreChips.Single(c => c.Value == "炎").CountText.Should().BeEmpty();
+        var core = vm.CoreChips.Single(c => c.Value == "炎");
+        core.IsBlocked.Should().BeFalse();
+        core.IsReduced.Should().BeTrue();
+        core.CountText.Should().Be("剩 0");
+        core.IsSelected = true;
+        vm.FilteredOperators.Select(o => o.Name).Should().Equal("惊蛰");
+        vm.SelectedAvailabilityFilter = AvailabilityFilter.Available;
+        vm.FilteredOperators.Should().BeEmpty();
+        vm.SelectedAvailabilityFilter = AvailabilityFilter.Unavailable;
+        vm.FilteredOperators.Select(o => o.Name).Should().Equal("惊蛰");
         var swift = vm.OtherChips.Single(c => c.Value == "迅捷");
         swift.IsReduced.Should().BeTrue();
         swift.CountText.Should().Be("剩 1");

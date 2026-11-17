@@ -25,6 +25,7 @@ public partial class InputDialog : Window
     public InputDialog(string title, string prompt, string initialText = "")
     {
         InitializeComponent();
+        WindowUiScale.PrepareCentered(this);
         TitleText.Text = title;
         Title = title;
         PromptText.Text = prompt;

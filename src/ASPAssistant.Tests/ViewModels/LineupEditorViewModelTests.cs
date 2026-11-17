@@ -47,7 +47,7 @@ public class LineupEditorViewModelTests
         vm.Reset();
         vm.Slots[0].CoreEquipments.Should().Equal("维式重锤");
         source.Slots[0].Equipments.Should().Equal("维式重锤", "坚守盾牌");
-        vm.Slots.Should().HaveCount(9);
+        vm.Slots.Should().HaveCount(15);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class LineupEditorViewModelTests
         vm.Clear();
         vm.Name.Should().Be(source.Name);
         vm.LineupId.Should().Be(source.Id);
-        vm.Slots.Should().HaveCount(9).And.OnlyContain(s => s.OperatorName == "" && s.Equipments.Count == 0
+        vm.Slots.Should().HaveCount(15).And.OnlyContain(s => s.OperatorName == "" && s.Equipments.Count == 0
             && s.CoreEquipments.Count == 0 && s.Tags.Count == 0);
         vm.FilledSlotCount.Should().Be(0);
         vm.ActivatedCount.Should().Be(0);
@@ -76,7 +76,7 @@ public class LineupEditorViewModelTests
         vm.Reset();
         vm.Name.Should().Be("新阵容");
         vm.FilledSlotCount.Should().Be(0);
-        vm.Slots.Should().HaveCount(9);
+        vm.Slots.Should().HaveCount(15);
     }
 
     [Theory]
@@ -307,7 +307,15 @@ public class LineupEditorViewModelTests
             var tracking = new TrackingViewModel();
             tracking.TrackLineup(imported);
             tracking.TrackedOperators.Select(entry => entry.Name).Should().BeEquivalentTo("角峰", "前期", "中期", "挂件");
-            tracking.TrackedEquipment.Select(entry => entry.Name).Should().BeEquivalentTo("维式重锤", "坚守盾牌", "前期", "中期", "挂件");
+            tracking.TrackedEquipment.Select(entry => entry.Name).Should().BeEquivalentTo("维式重锤", "坚守盾牌");
+            tracking.ShowAllStages = true;
+            tracking.DisplayEquipment.Select(entry => entry.Name).Should().BeEquivalentTo("维式重锤", "坚守盾牌", "前期", "中期", "挂件");
+            foreach (var choice in tracking.StageChoices.Where(c => c.StageId != "final"))
+            {
+                tracking.SelectStage(choice);
+                tracking.TrackedEquipment.Select(entry => entry.Name).Should().Contain(choice.StageId switch
+                    { "early" => "前期", "mid" => "中期", _ => "挂件" });
+            }
         }
         finally
         {

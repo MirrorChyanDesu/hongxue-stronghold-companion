@@ -62,6 +62,33 @@ internal static class WindowUiScale
         }));
     }
 
+    internal static void PrepareCentered(Window window)
+    {
+        window.SourceInitialized += (_, _) =>
+        {
+            if (window.WindowStartupLocation != WindowStartupLocation.CenterOwner || window.Owner is not { } owner) return;
+            var opacity = window.Opacity;
+            window.Opacity = 0;
+            window.ContentRendered += CenterAfterLayout;
+            void CenterAfterLayout(object? sender, EventArgs args)
+            {
+                window.ContentRendered -= CenterAfterLayout;
+                var hwnd = new WindowInteropHelper(window).Handle;
+                var ownerHwnd = new WindowInteropHelper(owner).Handle;
+                // A modal dialog can close while its first ContentRendered callback is still queued.
+                if (!User32.IsWindow(hwnd) || !User32.IsWindow(ownerHwnd)) return;
+                var ownerBounds = User32.ReadWindowRect(ownerHwnd);
+                var bounds = User32.ReadWindowRect(hwnd);
+                var left = ownerBounds.Left + (ownerBounds.Width - bounds.Width) / 2;
+                var top = ownerBounds.Top + (ownerBounds.Height - bounds.Height) / 2;
+                var work = User32.GetMonitorGeometry(ownerBounds.Left + ownerBounds.Width / 2, ownerBounds.Top + ownerBounds.Height / 2).WorkArea;
+                User32.SetWindowBounds(hwnd, Core.Services.WindowGeometry.ClampBounds(new RECT
+                { Left = left, Top = top, Right = left + bounds.Width, Bottom = top + bounds.Height }, work));
+                window.Opacity = opacity;
+            }
+        };
+    }
+
     private static void OnWindowLoaded(object sender, RoutedEventArgs e)
     {
         var window = (Window)sender;

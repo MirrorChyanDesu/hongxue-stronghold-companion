@@ -19,7 +19,7 @@ internal static class EditorCopyMenuTests
     {
         ThemeManager.Apply(theme, night);
         Operator[] operators = [new() { Name = "甲", Tier = 2 },
-            .. Enumerable.Range(0, 9).Select(i => new Operator { Name = "其他" + i, Tier = 2 })];
+            .. Enumerable.Range(0, 15).Select(i => new Operator { Name = "其他" + i, Tier = 2 })];
         var calculator = new CovenantCalculator(operators, [], new Dictionary<string, string>());
         var source = new LineupSlot
         {
@@ -87,8 +87,8 @@ internal static class EditorCopyMenuTests
             checkedMenu.IsOpen = false;
 
             vm.SelectPhase(LineupPhase.前期);
-            for (var i = 0; i < 9; i++) vm.SetSlotOperator(i, "其他" + i);
-            ((StackPanel)editor.FindName("PhaseTabs")).Children.OfType<Button>()
+            for (var i = 0; i < 15; i++) vm.SetSlotOperator(i, "其他" + i);
+            ((Panel)editor.FindName("PhaseTabs")).Children.OfType<Button>()
                 .Single(b => Equals(b.DataContext, LineupPhase.后期)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             var fullBefore = vm.ToLineup().EarlySlots.Select(s => s.OperatorName).ToList();
             var fullMenu = Open();

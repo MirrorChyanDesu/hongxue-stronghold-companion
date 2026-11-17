@@ -45,6 +45,7 @@ public partial class GameConnectionWindow : Window
         _capture = capture;
         _settings = settings;
         InitializeComponent();
+        WindowUiScale.PrepareCentered(this);
         var saved = capture.Connection.Settings;
         AdbPathBox.Text = saved.AdbPath;
         AdbSerialBox.Text = saved.AdbSerial;

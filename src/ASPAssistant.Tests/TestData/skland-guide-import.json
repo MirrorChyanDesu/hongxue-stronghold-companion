@@ -1,16 +1,16 @@
 {
   "code": 0,
   "message": "OK",
+  "timestamp": "1794820268",
   "data": {
     "guide": {
       "guide": {
         "guideId": "2120392178422509756",
         "title": "2本伊比利亚能兜底能打boss流派",
+        "applicableScope": "",
         "strategyIds": [
           "band_bonus"
         ],
-        "seasonId": "act3autochess",
-        "versionId": "V3_1",
         "tabs": [
           {
             "tabType": 1,
@@ -127,7 +127,19 @@
               {
                 "itemId": "chess_item_1_04_e_a"
               }
-            ]
+            ],
+            "operationIdea": "详见回合讲解，主要思路为旅骨对着海沫，雅雅叠层，空弦对着旅骨/雅雅，靠本家流明和瑰盐激活聚合，有不错的生存与兜底能力同时也比较能打boss",
+            "activeBonds": {
+              "seasonBondIds": [
+                "iberiaShip"
+              ],
+              "regularBondIds": [
+                "arcaneShip",
+                "docShip",
+                "preciShip",
+                "suntShip"
+              ]
+            }
           },
           {
             "tabType": 2,
@@ -238,7 +250,18 @@
               {
                 "itemId": "chess_item_2_08_e_a"
               }
-            ]
+            ],
+            "operationIdea": "前两回合先找对子，第三回合升二本继续找对子，优先找旅骨和海沫，依靠空弦和旅骨叠伊比利亚和精准尽量快速凑到3伊比利亚2聚合和2-3精准，有卫戍信就给旅骨",
+            "activeBonds": {
+              "seasonBondIds": [
+                "iberiaShip"
+              ],
+              "regularBondIds": [
+                "docShip",
+                "indomShip",
+                "preciShip"
+              ]
+            }
           },
           {
             "tabType": 2,
@@ -361,9 +384,38 @@
               {
                 "itemId": "chess_item_2_08_e_a"
               }
-            ]
+            ],
+            "operationIdea": "到7到8回合就上3本碰霍尔海雅和流明，温蒂也可以拿来守线和凑羁绊，尽量在10回合内凑齐6伊比利亚，然后第十到十一回合上4本碰棘刺，如果遇到小鸟处理方式和温蒂一样，如果感觉发育不错在13回合到十四回合可以上5本碰缪缪拿同构体转职出3精准甚至三奥术三聚合，优先度为精准＞奥术＞聚合",
+            "activeBonds": {
+              "seasonBondIds": [
+                "iberiaShip"
+              ],
+              "regularBondIds": [
+                "arcaneShip",
+                "docShip",
+                "emptyShip",
+                "preciShip",
+                "suntShip"
+              ]
+            }
           }
-        ]
+        ],
+        "seasonId": "act3autochess",
+        "versionId": "V3_1",
+        "publishAtTs": "1794375752",
+        "latestEditAtTs": "1794375752",
+        "version": 1,
+        "auditStatus": 2,
+        "phase": 1
+      },
+      "poster": {
+        "nickname": "攻略作者"
+      },
+      "seasonTag": {
+        "seasonId": "act3autochess",
+        "name": "规程",
+        "phase": 1,
+        "phaseName": "序列I"
       },
       "invalid": 0
     },
@@ -372,44 +424,2284 @@
         "versionResourceMap": {
           "V3_1": {
             "chars": {
-              "char_4027_heyak": {
-                "name": "霍尔海雅",
-                "shopLevel": 4
+              "char_1027_greyy2": {
+                "charId": "char_1027_greyy2",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_1027_greyy2.png",
+                "name": "承曦格雷伊",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_1027_greyy2.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/f88b03c0cdba3ccfe450e55523e54bf8.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/bombarder.png",
+                "charProfession": "SNIPER",
+                "charSubProfession": "bombarder",
+                "skills": [
+                  {
+                    "skillId": "skchr_greyy2_2",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_greyy2_2.png",
+                    "name": "晨曦信标"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_greyy2",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/bom-x.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/red.png"
+                    },
+                    "name": "新型电控设备技术原型"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "preciShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/preciShip.png",
+                    "name": "精准",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  },
+                  {
+                    "bondId": "skillfulShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/skillfulShip.png",
+                    "name": "灵巧",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 2,
+                "purchasePrice": 3,
+                "traits": [
+                  {
+                    "traitType": "整备能力",
+                    "traitDesc": "<获得时>获得一件精准狙击镜",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_gold.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 1,
+                    "level": 60
+                  },
+                  {
+                    "traitType": "整备能力",
+                    "traitDesc": "<获得时>获得两件精准狙击镜",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_gold.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 55
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_1039_thorn2": {
+                "charId": "char_1039_thorn2",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_1039_thorn2.png",
+                "name": "引星棘刺",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_1039_thorn2.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/fbb0b5e16834283d0eb31392e44015a5.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/alchemist.png",
+                "charProfession": "SPECIAL",
+                "charSubProfession": "alchemist",
+                "skills": [
+                  {
+                    "skillId": "skchr_thorn2_2",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_thorn2_2.png",
+                    "name": "解构涌潮"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_thorn2",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/alc-x.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/grey.png"
+                    },
+                    "name": "三面的金币"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "iberiaShip",
+                    "bondType": 1,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/iberiaShip.png",
+                    "name": "伊比利亚",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  },
+                  {
+                    "bondId": "swiftShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/swiftShip.png",
+                    "name": "迅捷",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 6,
+                "purchasePrice": 4,
+                "traits": [
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<休整期结束时>使已激活的【伊比利亚】【迅捷】层数<@ba.vup>+12</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 2,
+                    "level": 1
+                  },
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<休整期结束时>使已激活的【伊比利亚】【迅捷】层数<@ba.vup>+24</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 60
+                  }
+                ],
+                "isDiyChar": false
               },
               "char_129_bluep": {
+                "charId": "char_129_bluep",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_129_bluep.png",
                 "name": "蓝毒",
-                "shopLevel": 2
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_129_bluep.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/f88b03c0cdba3ccfe450e55523e54bf8.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/fastshot.png",
+                "charProfession": "SNIPER",
+                "charSubProfession": "fastshot",
+                "skills": [
+                  {
+                    "skillId": "skchr_bluep_1",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_bluep_1.png",
+                    "name": "二重射击·自动"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_bluep",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/mar-y.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/red.png"
+                    },
+                    "name": "标准比色卡"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "iberiaShip",
+                    "bondType": 1,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/iberiaShip.png",
+                    "name": "伊比利亚",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 2,
+                "purchasePrice": 3,
+                "traits": [
+                  {
+                    "traitType": "作战能力",
+                    "traitDesc": "<战斗中>【伊比利亚】每叠加2层，本干员攻击力<@ba.vup>+1%</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_battle.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 1,
+                    "level": 60
+                  },
+                  {
+                    "traitType": "作战能力",
+                    "traitDesc": "<战斗中>【伊比利亚】每叠加1层，本干员攻击力<@ba.vup>+1%</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_battle.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 55
+                  }
+                ],
+                "isDiyChar": false
               },
-              "char_4163_rosesa": {
-                "name": "瑰盐",
-                "shopLevel": 2
+              "char_179_cgbird": {
+                "charId": "char_179_cgbird",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_179_cgbird.png",
+                "name": "夜莺",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_179_cgbird.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/bbcc1b5718773ee1f0cf71476339dfd1.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/ringhealer.png",
+                "charProfession": "MEDIC",
+                "charSubProfession": "ringhealer",
+                "skills": [
+                  {
+                    "skillId": "skchr_cgbird_3",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_cgbird_3.png",
+                    "name": "圣域"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_cgbird",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/rin-x.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/blue.png"
+                    },
+                    "name": "“封闭的希望”"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "emptyShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/emptyShip.png",
+                    "name": "协防干员",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  },
+                  {
+                    "bondId": "docShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/docShip.png",
+                    "name": "聚合",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 4,
+                "purchasePrice": 3,
+                "traits": [
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<战斗结束时>每有一名存活的我方干员，使自身已激活的盟约层数<@ba.vup>+1</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 2,
+                    "level": 1
+                  },
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<战斗结束时>每有一名存活的我方干员，使自身已激活的盟约层数<@ba.vup>+2</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 60
+                  }
+                ],
+                "isDiyChar": false
               },
-              "char_4232_hbound": {
-                "name": "旅骨",
-                "shopLevel": 3
+              "char_195_glassb": {
+                "charId": "char_195_glassb",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_195_glassb.png",
+                "name": "真理",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_195_glassb.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/602fff61828ed8ce00109503b939693f.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/slower.png",
+                "charProfession": "SUPPORT",
+                "charSubProfession": "slower",
+                "skills": [
+                  {
+                    "skillId": "skchr_glassb_1",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_glassb_1.png",
+                    "name": "专心致志"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_glassb",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/dec-y.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/grey.png"
+                    },
+                    "name": "读书笔记"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "ursusShip",
+                    "bondType": 1,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/ursusShip.png",
+                    "name": "乌萨斯",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 2,
+                "purchasePrice": 1,
+                "traits": [
+                  {
+                    "traitType": "整备能力",
+                    "traitDesc": "购买价格为<@ba.vup>1</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_gold.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 1,
+                    "level": 60
+                  },
+                  {
+                    "traitType": "整备能力",
+                    "traitDesc": "购买价格为<@ba.vup>1</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_gold.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 55
+                  }
+                ],
+                "isDiyChar": false
               },
-              "char_4042_lumen": {
-                "name": "流明",
-                "shopLevel": 4
-              },
-              "char_332_archet": {
-                "name": "空弦",
-                "shopLevel": 3
+              "char_249_mlyss": {
+                "charId": "char_249_mlyss",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_249_mlyss.png",
+                "name": "缪尔赛思",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_249_mlyss.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/de6940872f599e499c9708173e803e12.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/tactician.png",
+                "charProfession": "PIONEER",
+                "charSubProfession": "tactician",
+                "skills": [
+                  {
+                    "skillId": "skchr_mlyss_3",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_mlyss_3.png",
+                    "name": "浅层非熵适应"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_004_mlyss",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/tac-d.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/red.png"
+                    },
+                    "name": "“缪尔赛思和朋友们”"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "emptyShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/emptyShip.png",
+                    "name": "协防干员",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 6,
+                "purchasePrice": 4,
+                "traits": [
+                  {
+                    "traitType": "整备能力",
+                    "traitDesc": "<获得时>获得一个“变形同构体” ",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_gold.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 2,
+                    "level": 1
+                  },
+                  {
+                    "traitType": "整备能力",
+                    "traitDesc": "<获得时>获得两个“变形同构体” ",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_gold.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 60
+                  }
+                ],
+                "isDiyChar": false
               },
               "char_293_thorns": {
+                "charId": "char_293_thorns",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_293_thorns.png",
                 "name": "棘刺",
-                "shopLevel": 5
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_293_thorns.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/c38e024842876e2cf6453332bd24a37e.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/lord.png",
+                "charProfession": "WARRIOR",
+                "charSubProfession": "lord",
+                "skills": [
+                  {
+                    "skillId": "skchr_thorns_3",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_thorns_3.png",
+                    "name": "至高之术"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_thorns",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/lor-x.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/red.png"
+                    },
+                    "name": "“盐与沙”"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "iberiaShip",
+                    "bondType": 1,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/iberiaShip.png",
+                    "name": "伊比利亚",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  },
+                  {
+                    "bondId": "arcaneShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/arcaneShip.png",
+                    "name": "奥术",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 5,
+                "purchasePrice": 4,
+                "traits": [
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<休整期结束时>使已激活的【伊比利亚】叠加等同于场上所有干员售出价格的层数（每回合至多叠加12层）",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 2,
+                    "level": 1
+                  },
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<休整期结束时>使已激活的【伊比利亚】叠加等同于场上所有干员售出价格2倍的层数（每回合至多叠加24层）",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 60
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_332_archet": {
+                "charId": "char_332_archet",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_332_archet.png",
+                "name": "空弦",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_332_archet.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/f88b03c0cdba3ccfe450e55523e54bf8.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/fastshot.png",
+                "charProfession": "SNIPER",
+                "charSubProfession": "fastshot",
+                "skills": [
+                  {
+                    "skillId": "skchr_archet_3",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_archet_3.png",
+                    "name": "箭矢·暴风"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_archet",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/mar-y.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/red.png"
+                    },
+                    "name": "“明天的种子”"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "visiShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/visiShip.png",
+                    "name": "远见",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  },
+                  {
+                    "bondId": "preciShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/preciShip.png",
+                    "name": "精准",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 3,
+                "purchasePrice": 3,
+                "traits": [
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<进入休整期时>使自身及身前一格干员已激活的盟约层数<@ba.vup>+3</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 2,
+                    "level": 1
+                  },
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<进入休整期时>使自身及身前一格干员已激活的盟约层数<@ba.vup>+6</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 60
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_355_ethan": {
+                "charId": "char_355_ethan",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_355_ethan.png",
+                "name": "伊桑",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_355_ethan.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/fbb0b5e16834283d0eb31392e44015a5.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/stalker.png",
+                "charProfession": "SPECIAL",
+                "charSubProfession": "stalker",
+                "skills": [
+                  {
+                    "skillId": "skchr_ethan_2",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_ethan_2.png",
+                    "name": "十字悬挂"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_ethan",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/amb-x.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/grey.png"
+                    },
+                    "name": "超级喷漆套装"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "arcaneShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/arcaneShip.png",
+                    "name": "奥术",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  },
+                  {
+                    "bondId": "raidShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/raidShip.png",
+                    "name": "突袭",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 3,
+                "purchasePrice": 3,
+                "traits": [
+                  {
+                    "traitType": "整备能力",
+                    "traitDesc": "<售出时>随机获得一名当前人数最多盟约的干员（不高于当前调度中心等级；无法获得自身）",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_gold.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 2,
+                    "level": 1
+                  },
+                  {
+                    "traitType": "整备能力",
+                    "traitDesc": "<售出时>随机获得一名当前人数最多盟约的干员（不高于当前调度中心等级；无法获得自身）",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_gold.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 60
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_367_swllow": {
+                "charId": "char_367_swllow",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_367_swllow.png",
+                "name": "灰喉",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_367_swllow.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/f88b03c0cdba3ccfe450e55523e54bf8.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/fastshot.png",
+                "charProfession": "SNIPER",
+                "charSubProfession": "fastshot",
+                "skills": [
+                  {
+                    "skillId": "skchr_swllow_1",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_swllow_1.png",
+                    "name": "飞羽"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_swllow",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/mar-y.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/red.png"
+                    },
+                    "name": "母爱的倒影"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "preciShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/preciShip.png",
+                    "name": "精准",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 1,
+                "purchasePrice": 2,
+                "traits": [
+                  {
+                    "traitType": "单次叠加",
+                    "traitDesc": "<获得时>【精准】层数<@ba.vup>+2</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 1,
+                    "level": 55
+                  },
+                  {
+                    "traitType": "单次叠加",
+                    "traitDesc": "<获得时>【精准】层数<@ba.vup>+4</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 50
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_4009_irene": {
+                "charId": "char_4009_irene",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4009_irene.png",
+                "name": "艾丽妮",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_4009_irene.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/c38e024842876e2cf6453332bd24a37e.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/sword.png",
+                "charProfession": "WARRIOR",
+                "charSubProfession": "sword",
+                "skills": [
+                  {
+                    "skillId": "skchr_irene_2",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_irene_2.png",
+                    "name": "裂潮"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_003_irene",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/swo-x.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/red.png"
+                    },
+                    "name": "审判官口粮"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "iberiaShip",
+                    "bondType": 1,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/iberiaShip.png",
+                    "name": "伊比利亚",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 5,
+                "purchasePrice": 4,
+                "traits": [
+                  {
+                    "traitType": "作战能力",
+                    "traitDesc": "<战斗中>周围12格每有一名敌人被击倒自身回复<@ba.vup>3</>点技力",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_battle.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 2,
+                    "level": 1
+                  },
+                  {
+                    "traitType": "作战能力",
+                    "traitDesc": "<战斗中>周围12格每有一名敌人被击倒自身回复<@ba.vup>6</>点技力",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_battle.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 60
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_400_weedy": {
+                "charId": "char_400_weedy",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_400_weedy.png",
+                "name": "温蒂",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_400_weedy.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/fbb0b5e16834283d0eb31392e44015a5.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/pusher.png",
+                "charProfession": "SPECIAL",
+                "charSubProfession": "pusher",
+                "skills": [
+                  {
+                    "skillId": "skchr_weedy_3",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_weedy_3.png",
+                    "name": "液氮大炮"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_weedy",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/pus-x.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/grey.png"
+                    },
+                    "name": "仿生海龙改型"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "iberiaShip",
+                    "bondType": 1,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/iberiaShip.png",
+                    "name": "伊比利亚",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  },
+                  {
+                    "bondId": "steadShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/steadShip.png",
+                    "name": "坚守",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 4,
+                "purchasePrice": 3,
+                "traits": [
+                  {
+                    "traitType": "整备能力",
+                    "traitDesc": "售出价格为<@ba.vup>3</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_gold.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 2,
+                    "level": 1
+                  },
+                  {
+                    "traitType": "整备能力",
+                    "traitDesc": "售出价格为<@ba.vup>6</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_gold.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 60
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_4027_heyak": {
+                "charId": "char_4027_heyak",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4027_heyak.png",
+                "name": "霍尔海雅",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_4027_heyak.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/148484e7c4ee488374a0aefe2d42b6a1.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/corecaster.png",
+                "charProfession": "CASTER",
+                "charSubProfession": "corecaster",
+                "skills": [
+                  {
+                    "skillId": "skchr_heyak_1",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_heyak_1.png",
+                    "name": "但为求索"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_heyak",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/ccr-x.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/red.png"
+                    },
+                    "name": "“图书馆”"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "arcaneShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/arcaneShip.png",
+                    "name": "奥术",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  },
+                  {
+                    "bondId": "preciShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/preciShip.png",
+                    "name": "精准",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 4,
+                "purchasePrice": 3,
+                "traits": [
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<战斗中>每次开启技能时使自身已激活的盟约层数<@ba.vup>+4</>（每场战斗至多叠加12层）",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 2,
+                    "level": 1
+                  },
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<战斗中>每次开启技能时使自身已激活的盟约层数<@ba.vup>+8</>（每场战斗至多叠加24层）",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 60
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_4041_chnut": {
+                "charId": "char_4041_chnut",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4041_chnut.png",
+                "name": "褐果",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_4041_chnut.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/bbcc1b5718773ee1f0cf71476339dfd1.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/wandermedic.png",
+                "charProfession": "MEDIC",
+                "charSubProfession": "wandermedic",
+                "skills": [
+                  {
+                    "skillId": "skchr_chnut_1",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_chnut_1.png",
+                    "name": "积微成著"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_chnut",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/wdm-x.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/blue.png"
+                    },
+                    "name": "地上巡旅纪念灯"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "docShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/docShip.png",
+                    "name": "聚合",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 1,
+                "purchasePrice": 2,
+                "traits": [
+                  {
+                    "traitType": "单次叠加",
+                    "traitDesc": "<获得时>【聚合】层数<@ba.vup>+2</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 1,
+                    "level": 55
+                  },
+                  {
+                    "traitType": "单次叠加",
+                    "traitDesc": "<获得时>【聚合】层数<@ba.vup>+4</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 50
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_4042_lumen": {
+                "charId": "char_4042_lumen",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4042_lumen.png",
+                "name": "流明",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_4042_lumen.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/bbcc1b5718773ee1f0cf71476339dfd1.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/healer.png",
+                "charProfession": "MEDIC",
+                "charSubProfession": "healer",
+                "skills": [
+                  {
+                    "skillId": "skchr_lumen_3",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_lumen_3.png",
+                    "name": "灯火不灭"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_003_lumen",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/WAH-Y.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/blue.png"
+                    },
+                    "name": "“幸运”"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "iberiaShip",
+                    "bondType": 1,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/iberiaShip.png",
+                    "name": "伊比利亚",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  },
+                  {
+                    "bondId": "docShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/docShip.png",
+                    "name": "聚合",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 4,
+                "purchasePrice": 3,
+                "traits": [
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<战斗结束时>每有一名存活的我方干员，使已激活的【伊比利亚】【聚合】层数<@ba.vup>+1</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 2,
+                    "level": 1
+                  },
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<战斗结束时>每有一名存活的我方干员，使已激活的【伊比利亚】【聚合】层数<@ba.vup>+2</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 60
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_4054_malist": {
+                "charId": "char_4054_malist",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4054_malist.png",
+                "name": "至简",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_4054_malist.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/148484e7c4ee488374a0aefe2d42b6a1.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/funnel.png",
+                "charProfession": "CASTER",
+                "charSubProfession": "funnel",
+                "skills": [
+                  {
+                    "skillId": "skcom_quickattack[3]",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skcom_quickattack%5B3%5D.png",
+                    "name": "迅捷打击·γ型"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_malist",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/fun-y.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/red.png"
+                    },
+                    "name": "“新家园”"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "sargonShip",
+                    "bondType": 1,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/sargonShip.png",
+                    "name": "萨尔贡",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 3,
+                "purchasePrice": 1,
+                "traits": [
+                  {
+                    "traitType": "整备能力",
+                    "traitDesc": "购买价格为<@ba.vup>1</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_gold.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 2,
+                    "level": 1
+                  },
+                  {
+                    "traitType": "整备能力",
+                    "traitDesc": "购买价格为<@ba.vup>1</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_gold.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 60
+                  }
+                ],
+                "isDiyChar": false
               },
               "char_4066_highmo": {
+                "charId": "char_4066_highmo",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4066_highmo.png",
                 "name": "海沫",
-                "shopLevel": 3
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_4066_highmo.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/c38e024842876e2cf6453332bd24a37e.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/reaper.png",
+                "charProfession": "WARRIOR",
+                "charSubProfession": "reaper",
+                "skills": [
+                  {
+                    "skillId": "skchr_highmo_1",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_highmo_1.png",
+                    "name": "回首，断舍"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_highmo",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/rea-x.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/blue.png"
+                    },
+                    "name": "“启航”"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "iberiaShip",
+                    "bondType": 1,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/iberiaShip.png",
+                    "name": "伊比利亚",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  },
+                  {
+                    "bondId": "indomShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/indomShip.png",
+                    "name": "不屈",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 3,
+                "purchasePrice": 3,
+                "traits": [
+                  {
+                    "traitType": "整备能力",
+                    "traitDesc": "<休整期结束时>自身售出价格<@ba.vup>+1</>（自身售出价格至多为4）",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_gold.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 2,
+                    "level": 1
+                  },
+                  {
+                    "traitType": "整备能力",
+                    "traitDesc": "<休整期结束时>自身售出价格<@ba.vup>+2</>（自身售出价格至多为8）",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_gold.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 60
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_4163_rosesa": {
+                "charId": "char_4163_rosesa",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4163_rosesa.png",
+                "name": "瑰盐",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_4163_rosesa.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/bbcc1b5718773ee1f0cf71476339dfd1.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/ringhealer.png",
+                "charProfession": "MEDIC",
+                "charSubProfession": "ringhealer",
+                "skills": [
+                  {
+                    "skillId": "skchr_rosesa_1",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_rosesa_1.png",
+                    "name": "上佳的应急药呀"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_rosesa",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/rin-x.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/blue.png"
+                    },
+                    "name": "多彩盐漠生活"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "iberiaShip",
+                    "bondType": 1,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/iberiaShip.png",
+                    "name": "伊比利亚",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  },
+                  {
+                    "bondId": "docShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/docShip.png",
+                    "name": "聚合",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 2,
+                "purchasePrice": 3,
+                "traits": [
+                  {
+                    "traitType": "作战能力",
+                    "traitDesc": "<战斗中>【伊比利亚】每叠加3层，本干员攻击力<@ba.vup>+1%</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_battle.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 1,
+                    "level": 60
+                  },
+                  {
+                    "traitType": "作战能力",
+                    "traitDesc": "<战斗中>【伊比利亚】每叠加3层，本干员攻击力<@ba.vup>+2%</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_battle.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 55
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_4166_varkis": {
+                "charId": "char_4166_varkis",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4166_varkis.png",
+                "name": "摆渡人",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_4166_varkis.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/c38e024842876e2cf6453332bd24a37e.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/centurion.png",
+                "charProfession": "WARRIOR",
+                "charSubProfession": "centurion",
+                "skills": [
+                  {
+                    "skillId": "skchr_varkis_1",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_varkis_1.png",
+                    "name": "奔流"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_varkis",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/cen-y.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/yellow.png"
+                    },
+                    "name": "回家的路"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "steadShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/steadShip.png",
+                    "name": "坚守",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  },
+                  {
+                    "bondId": "indomShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/indomShip.png",
+                    "name": "不屈",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 1,
+                "purchasePrice": 2,
+                "traits": [
+                  {
+                    "traitType": "单次叠加",
+                    "traitDesc": "<获得时>【坚守】【不屈】层数<@ba.vup>+1</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 1,
+                    "level": 55
+                  },
+                  {
+                    "traitType": "单次叠加",
+                    "traitDesc": "<获得时>【坚守】【不屈】层数<@ba.vup>+2</>",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 50
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_4207_branch": {
+                "charId": "char_4207_branch",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4207_branch.png",
+                "name": "折桠",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_4207_branch.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/3eafa3ffc1e936c31a94053a2332d8b1.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/unyield.png",
+                "charProfession": "TANK",
+                "charSubProfession": "unyield",
+                "skills": [
+                  {
+                    "skillId": "skchr_branch_1",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_branch_1.png",
+                    "name": "绝境抵抗"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_branch",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/uny-x.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/yellow.png"
+                    },
+                    "name": "“时间的痕迹”"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "ursusShip",
+                    "bondType": 1,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/ursusShip.png",
+                    "name": "乌萨斯",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  },
+                  {
+                    "bondId": "indomShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/indomShip.png",
+                    "name": "不屈",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 1,
+                "purchasePrice": 2,
+                "traits": [
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<进入休整期时>转化<@ba.vup>2</>层【乌萨斯】临时层数为固定层数",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 1,
+                    "level": 55
+                  },
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<进入休整期时>转化<@ba.vup>4</>层【乌萨斯】临时层数为固定层数",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 50
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_4232_hbound": {
+                "charId": "char_4232_hbound",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4232_hbound.png",
+                "name": "旅骨",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_4232_hbound.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/fbb0b5e16834283d0eb31392e44015a5.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/alchemist.png",
+                "charProfession": "SPECIAL",
+                "charSubProfession": "alchemist",
+                "skills": [
+                  {
+                    "skillId": "skchr_hbound_2",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_hbound_2.png",
+                    "name": "座浅"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_hbound",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/alc-x.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/grey.png"
+                    },
+                    "name": "看不见的大海"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "iberiaShip",
+                    "bondType": 1,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/iberiaShip.png",
+                    "name": "伊比利亚",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  },
+                  {
+                    "bondId": "preciShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/preciShip.png",
+                    "name": "精准",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 3,
+                "purchasePrice": 3,
+                "traits": [
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<休整期结束时>使自身及身前一格干员已激活的盟约叠加等同于其售出价格的层数",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 2,
+                    "level": 1
+                  },
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<休整期结束时>使自身及身前一格干员已激活的盟约叠加等同于其售出价格2倍的层数",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 60
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_469_indigo": {
+                "charId": "char_469_indigo",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_469_indigo.png",
+                "name": "深靛",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_469_indigo.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/148484e7c4ee488374a0aefe2d42b6a1.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/mystic.png",
+                "charProfession": "CASTER",
+                "charSubProfession": "mystic",
+                "skills": [
+                  {
+                    "skillId": "skchr_indigo_1",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_indigo_1.png",
+                    "name": "灯塔守卫者"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_indigo",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/msc-x.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/red.png"
+                    },
+                    "name": "法杖保养套装"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "iberiaShip",
+                    "bondType": 1,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/iberiaShip.png",
+                    "name": "伊比利亚",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 1,
+                "purchasePrice": 2,
+                "traits": [
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<休整期结束时>使已激活的【伊比利亚】层数+2",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 1,
+                    "level": 55
+                  },
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<休整期结束时>使已激活的【伊比利亚】层数+4",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 50
+                  }
+                ],
+                "isDiyChar": false
+              },
+              "char_485_pallas": {
+                "charId": "char_485_pallas",
+                "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_485_pallas.png",
+                "name": "帕拉斯",
+                "halfBodyUrl": "https://web.hycdn.cn/arknights/game/assets/char/portrait/char_485_pallas.png",
+                "professionIconUrl": "https://bbs.hycdn.cn/asset/arknights/profession/c38e024842876e2cf6453332bd24a37e.png",
+                "subProfessionIconUrl": "https://web.hycdn.cn/arknights/game/assets/char_base/subprofession/instructor.png",
+                "charProfession": "WARRIOR",
+                "charSubProfession": "instructor",
+                "skills": [
+                  {
+                    "skillId": "skchr_pallas_3",
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/skchr_pallas_3.png",
+                    "name": "英勇的祝福"
+                  }
+                ],
+                "modules": [
+                  {
+                    "moduleId": "uniequip_002_pallas",
+                    "icon": {
+                      "type": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/icon/ins-x.png",
+                      "shiningColor": "https://web.hycdn.cn/arknights/game/assets/uniequip/type/shining/red.png"
+                    },
+                    "name": "“故乡的山岩”"
+                  }
+                ],
+                "bonds": [
+                  {
+                    "bondId": "deputShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/deputShip.png",
+                    "name": "助力",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  },
+                  {
+                    "bondId": "skillfulShip",
+                    "bondType": 2,
+                    "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/skillfulShip.png",
+                    "name": "灵巧",
+                    "activeCount": 0,
+                    "effect": "",
+                    "chars": []
+                  }
+                ],
+                "shopLevel": 6,
+                "purchasePrice": 4,
+                "traits": [
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<休整期结束时>使自身以及身前一格干员已激活的盟约层数+9",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 0,
+                    "evolvePhase": 2,
+                    "level": 1
+                  },
+                  {
+                    "traitType": "持续叠加",
+                    "traitDesc": "<休整期结束时>使自身以及身前一格干员已激活的盟约层数+18",
+                    "traitIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/garrison_icon/icon_bond.png",
+                    "mergeLevel": 1,
+                    "evolvePhase": 2,
+                    "level": 60
+                  }
+                ],
+                "isDiyChar": false
+              }
+            },
+            "items": {
+              "chess_item_1_01_e_a": {
+                "itemId": "chess_item_1_01_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm041_1.png",
+                "name": "维式重锤",
+                "shopLevel": 1,
+                "purchasePrice": 1,
+                "effectDesc": "攻击力<@ba.vup>+15%</>",
+                "cannotPurchase": false
+              },
+              "chess_item_1_03_e_a": {
+                "itemId": "chess_item_1_03_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm066_1.png",
+                "name": "盟约之币",
+                "shopLevel": 1,
+                "purchasePrice": 1,
+                "effectDesc": "<@ba.vdown>装备时销毁</>，并获得<@ba.vup>1</>资金",
+                "cannotPurchase": false
+              },
+              "chess_item_1_04_e_a": {
+                "itemId": "chess_item_1_04_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm124_1.png",
+                "name": "随身身份牌",
+                "shopLevel": 1,
+                "purchasePrice": 1,
+                "effectDesc": "<@ba.vdown>装备时销毁</>，并使携带者所属盟约层数<@ba.vup>+3</>（无需激活盟约）",
+                "cannotPurchase": false
+              },
+              "chess_item_1_05_e_a": {
+                "itemId": "chess_item_1_05_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm125_1.png",
+                "name": "源石溶剂",
+                "shopLevel": 1,
+                "purchasePrice": 1,
+                "effectDesc": "携带者每秒流失<@ba.vdown>60</>点生命值，攻击力<@ba.vup>+40%</>",
+                "cannotPurchase": false
+              },
+              "chess_item_2_05_e_a": {
+                "itemId": "chess_item_2_05_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm113_1.png",
+                "name": "精打细算玩偶",
+                "shopLevel": 2,
+                "purchasePrice": 3,
+                "effectDesc": "<@ba.vdown>装备时销毁</>，之后每回合开始时额外获得<@ba.vup>1</>资金",
+                "cannotPurchase": false
+              },
+              "chess_item_2_06_e_a": {
+                "itemId": "chess_item_2_06_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm114_1.png",
+                "name": "简易通讯机",
+                "shopLevel": 2,
+                "purchasePrice": 2,
+                "effectDesc": "<@ba.vdown>装备时销毁</>，随机获得<@ba.vup>1</>名拥有该干员第一盟约的干员",
+                "cannotPurchase": false
+              },
+              "chess_item_2_07_e_a": {
+                "itemId": "chess_item_2_07_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm116_1.png",
+                "name": "见钱眼开玩偶",
+                "shopLevel": 2,
+                "purchasePrice": 1,
+                "effectDesc": "<@ba.vdown>装备时销毁</>，下回合额外获得<@ba.vup>2</>资金",
+                "cannotPurchase": false
+              },
+              "chess_item_2_08_e_a": {
+                "itemId": "chess_item_2_08_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm128_1.png",
+                "name": "卫戍推荐信",
+                "shopLevel": 2,
+                "purchasePrice": 2,
+                "effectDesc": "休整期结束时，使携带者所属的已激活盟约层数<@ba.vup>+1</>",
+                "cannotPurchase": false
+              },
+              "chess_item_2_09_e_a": {
+                "itemId": "chess_item_2_09_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm136_1.png",
+                "name": "聚合急救箱",
+                "shopLevel": 2,
+                "purchasePrice": 2,
+                "effectDesc": "攻击范围内每个友方干员首次生命值低于<@ba.vup>50%</>时，立刻治疗其<@ba.vup>35%</>最大生命值",
+                "cannotPurchase": false
+              },
+              "chess_item_3_02_e_a": {
+                "itemId": "chess_item_3_02_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm063_1.png",
+                "name": "精准狙击镜",
+                "shopLevel": 3,
+                "purchasePrice": 2,
+                "effectDesc": "攻击距离自身3格及以上的目标时，伤害提高<@ba.vup>30%</>",
+                "cannotPurchase": false
+              },
+              "chess_item_3_07_e_a": {
+                "itemId": "chess_item_3_07_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm048_1.png",
+                "name": "奥术法阵",
+                "shopLevel": 3,
+                "purchasePrice": 1,
+                "effectDesc": "法术抗性<@ba.vup>+20</>，攻击使目标失去特殊能力<@ba.vup>5</>秒",
+                "cannotPurchase": false
+              },
+              "chess_item_3_14_e_a": {
+                "itemId": "chess_item_3_14_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm133_1.png",
+                "name": "伊比利亚骨刺刀",
+                "shopLevel": 3,
+                "purchasePrice": 2,
+                "effectDesc": "携带者每次造成伤害时，额外造成<@ba.vup>1</>次相当于自身攻击力<@ba.vup>25%</>的法术伤害",
+                "cannotPurchase": false
+              },
+              "chess_item_4_01_e_a": {
+                "itemId": "chess_item_4_01_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm075_1.png",
+                "name": "寻呼模块",
+                "shopLevel": 4,
+                "purchasePrice": 4,
+                "effectDesc": "<@ba.vdown>装备时销毁</>，在调度中心出现至多3名拥有该干员第一盟约的干员，免费获取其中1名（不高于当前调度中心等级）",
+                "cannotPurchase": false
+              },
+              "chess_item_4_09_e_a": {
+                "itemId": "chess_item_4_09_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm134_1.png",
+                "name": "莱塔尼亚小鼓",
+                "shopLevel": 4,
+                "purchasePrice": 2,
+                "effectDesc": "携带者攻击范围内每次有单位被击倒时回复<@ba.vup>2</>技力",
+                "cannotPurchase": false
+              },
+              "chess_item_5_03_e_a": {
+                "itemId": "chess_item_5_03_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm069_1.png",
+                "name": "拟态物质",
+                "shopLevel": 5,
+                "purchasePrice": 4,
+                "effectDesc": "<@ba.vdown>装备时销毁</>，若已拥有至少2名该初始干员，则再获得1名该初始干员；否则随机获得1名同阶干员",
+                "cannotPurchase": false
+              },
+              "chess_item_5_04_e_a": {
+                "itemId": "chess_item_5_04_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm071_1.png",
+                "name": "博士投影",
+                "shopLevel": 5,
+                "purchasePrice": 5,
+                "effectDesc": "<@ba.vdown>装备后下个回合开始时销毁</>，并使该干员晋升为精锐干员",
+                "cannotPurchase": false
+              },
+              "chess_item_5_06_e_a": {
+                "itemId": "chess_item_5_06_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm139_1.png",
+                "name": "投机骰子",
+                "shopLevel": 5,
+                "purchasePrice": 3,
+                "effectDesc": "<@ba.vdown>装备时销毁</>，从3个指令中选择1个替换当前指令",
+                "cannotPurchase": false
+              },
+              "chess_item_5_08_e_a": {
+                "itemId": "chess_item_5_08_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm141_1.png",
+                "name": "佣兵名牌",
+                "shopLevel": 5,
+                "purchasePrice": 2,
+                "effectDesc": "每有一种激活的盟约，使携带者攻击力<@ba.vup>+6%</>、生命上限<@ba.vup>+6%</>（最多叠加<@ba.vup>8</>次）",
+                "cannotPurchase": false
+              },
+              "chess_item_5_09_e_a": {
+                "itemId": "chess_item_5_09_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm142_1.png",
+                "name": "人事部记录",
+                "shopLevel": 5,
+                "purchasePrice": 3,
+                "effectDesc": "<@ba.vdown>装备时销毁</>，立刻特殊刷新1次调度中心，优先出现拥有该干员第一盟约的干员（不高于当前调度中心等级）",
+                "cannotPurchase": false
+              },
+              "chess_item_6_03_e_a": {
+                "itemId": "chess_item_6_03_e_a",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/char_skill/sktok_acarm073_1.png",
+                "name": "变形同构体",
+                "shopLevel": 6,
+                "purchasePrice": 3,
+                "effectDesc": "携带者获得额外盟约（由另一件携带装备而定）\\n<@ba.acrem>具体对应关系可在模拟中查看本装备天赋栏</>",
+                "cannotPurchase": false
               }
             },
             "strategies": {
               "band_bonus": {
-                "name": "二重奏"
+                "strategyId": "band_bonus",
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/band_icon/band_bonus.png",
+                "initiatorName": "复奏",
+                "initiatorIconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/band_icon/band_bonus.png",
+                "name": "二重奏",
+                "hp": 24,
+                "effect": "【二重奏】\\n<@autochess.dgreen>被动效果</>：每回合首次晋升精锐干员时，获得1次额外的晋升奖励"
               }
-            }
+            },
+            "bonds": {
+              "arcaneShip": {
+                "bondId": "arcaneShip",
+                "bondType": 2,
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/arcaneShip.png",
+                "name": "奥术",
+                "activeCount": 2,
+                "effect": "【奥术】干员造成伤害时，额外附加一次一定攻击力的<@ba.vup>法术伤害</><@autochess.gray>（受层数影响）</>\n<在场<@autochess.dgreen>3</>名不同【奥术】干员>场上所有敌人每次受到伤害时<@ba.vup>法术抗性降低</><@autochess.gray>（上限受层数影响）</>；【奥术】干员攻击范围内敌人的隐匿效果<@ba.vup>失效</>",
+                "chars": [
+                  {
+                    "charId": "char_328_cammou",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_328_cammou.png",
+                    "shopLevel": 1
+                  },
+                  {
+                    "charId": "char_4198_christ",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4198_christ.png",
+                    "shopLevel": 2
+                  },
+                  {
+                    "charId": "char_355_ethan",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_355_ethan.png",
+                    "shopLevel": 3
+                  },
+                  {
+                    "charId": "char_180_amgoat",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_180_amgoat.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_4027_heyak",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4027_heyak.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_4226_veen",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4226_veen.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_472_pasngr",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_472_pasngr.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_1046_sbell2",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_1046_sbell2.png",
+                    "shopLevel": 5
+                  },
+                  {
+                    "charId": "char_1047_halo2",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_1047_halo2.png",
+                    "shopLevel": 5
+                  },
+                  {
+                    "charId": "char_293_thorns",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_293_thorns.png",
+                    "shopLevel": 5
+                  },
+                  {
+                    "charId": "char_4098_vvana",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4098_vvana.png",
+                    "shopLevel": 5
+                  },
+                  {
+                    "charId": "char_2015_dusk",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_2015_dusk.png",
+                    "shopLevel": 6
+                  },
+                  {
+                    "charId": "char_4133_logos",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4133_logos.png",
+                    "shopLevel": 6
+                  },
+                  {
+                    "charId": "char_4247_oxi",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4247_oxi.png",
+                    "shopLevel": 6
+                  }
+                ]
+              },
+              "docShip": {
+                "bondId": "docShip",
+                "bondType": 2,
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/docShip.png",
+                "name": "聚合",
+                "activeCount": 2,
+                "effect": "【聚合】干员攻击范围内的我方单位每秒回复相当于该干员一定比例攻击力的<@ba.vup>生命值</>和一定比例攻击力的<@ba.vup>元素损伤</><@autochess.gray>（受层数影响）</>\n<在场<@autochess.dgreen>3</>名【聚合】干员>【聚合】干员攻击范围内的所有干员获得一定比例的<@ba.vup>庇护</><@autochess.gray>（受层数影响）</>",
+                "chars": [
+                  {
+                    "charId": "char_4041_chnut",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4041_chnut.png",
+                    "shopLevel": 1
+                  },
+                  {
+                    "charId": "char_258_podego",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_258_podego.png",
+                    "shopLevel": 2
+                  },
+                  {
+                    "charId": "char_4139_papyrs",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4139_papyrs.png",
+                    "shopLevel": 2
+                  },
+                  {
+                    "charId": "char_4163_rosesa",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4163_rosesa.png",
+                    "shopLevel": 2
+                  },
+                  {
+                    "charId": "char_4222_taraxa",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4222_taraxa.png",
+                    "shopLevel": 3
+                  },
+                  {
+                    "charId": "char_4224_turdus",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4224_turdus.png",
+                    "shopLevel": 3
+                  },
+                  {
+                    "charId": "char_171_bldsk",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_171_bldsk.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_179_cgbird",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_179_cgbird.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_4042_lumen",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4042_lumen.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_1016_agoat2",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_1016_agoat2.png",
+                    "shopLevel": 5
+                  },
+                  {
+                    "charId": "char_1012_skadi2",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_1012_skadi2.png",
+                    "shopLevel": 6
+                  },
+                  {
+                    "charId": "char_4202_haruka",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4202_haruka.png",
+                    "shopLevel": 6
+                  }
+                ]
+              },
+              "emptyShip": {
+                "bondId": "emptyShip",
+                "bondType": 2,
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/emptyShip.png",
+                "name": "协防干员",
+                "activeCount": 2,
+                "effect": "所有干员受到的物理和法术伤害<@ba.vup>-20%</>，【协防干员】伤害提升至<@ba.vup>120%</>，精锐【协防干员】造成伤害提升至<@ba.vup>140%</>",
+                "chars": [
+                  {
+                    "charId": "char_174_slbell",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_174_slbell.png",
+                    "shopLevel": 3
+                  },
+                  {
+                    "charId": "char_179_cgbird",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_179_cgbird.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_202_demkni",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_202_demkni.png",
+                    "shopLevel": 5
+                  },
+                  {
+                    "charId": "char_4179_monstr",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4179_monstr.png",
+                    "shopLevel": 5
+                  },
+                  {
+                    "charId": "char_618_acrbot",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_618_acrbot.png",
+                    "shopLevel": 5
+                  },
+                  {
+                    "charId": "char_249_mlyss",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_249_mlyss.png",
+                    "shopLevel": 6
+                  },
+                  {
+                    "charId": "char_4230_mcnist",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4230_mcnist.png",
+                    "shopLevel": 6
+                  },
+                  {
+                    "charId": "char_4247_oxi",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4247_oxi.png",
+                    "shopLevel": 6
+                  }
+                ]
+              },
+              "iberiaShip": {
+                "bondId": "iberiaShip",
+                "bondType": 1,
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/iberiaShip.png",
+                "name": "伊比利亚",
+                "activeCount": 3,
+                "effect": "【伊比利亚】干员或炼金单元每次造成伤害时，使目标每秒受到该单位攻击力一定比例的持续法术伤害<@autochess.gray>（受层数影响）</>，至多叠加<@ba.vup>10</>次，持续<@ba.vup>10</>秒\n<在场<@autochess.dgreen>6</>名不同【伊比利亚】干员>【伊比利亚】干员或炼金单元造成伤害时附带的持续法术伤害提升至<@ba.vup>2</>倍，并使目标移动速度<@ba.vup>-4%</>（至多-80%），持续<@ba.vup>10</>秒；【伊比利亚】干员或炼金单元每次造成伤害时，有一定概率使该次伤害弹射至周围一定范围内的敌人，造成<@ba.vup>300%</>攻击力的法术伤害",
+                "chars": [
+                  {
+                    "charId": "char_469_indigo",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_469_indigo.png",
+                    "shopLevel": 1
+                  },
+                  {
+                    "charId": "char_129_bluep",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_129_bluep.png",
+                    "shopLevel": 2
+                  },
+                  {
+                    "charId": "char_4163_rosesa",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4163_rosesa.png",
+                    "shopLevel": 2
+                  },
+                  {
+                    "charId": "char_4066_highmo",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4066_highmo.png",
+                    "shopLevel": 3
+                  },
+                  {
+                    "charId": "char_4232_hbound",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4232_hbound.png",
+                    "shopLevel": 3
+                  },
+                  {
+                    "charId": "char_400_weedy",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_400_weedy.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_4042_lumen",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4042_lumen.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_293_thorns",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_293_thorns.png",
+                    "shopLevel": 5
+                  },
+                  {
+                    "charId": "char_4009_irene",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4009_irene.png",
+                    "shopLevel": 5
+                  },
+                  {
+                    "charId": "char_1039_thorn2",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_1039_thorn2.png",
+                    "shopLevel": 6
+                  }
+                ]
+              },
+              "indomShip": {
+                "bondId": "indomShip",
+                "bondType": 2,
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/indomShip.png",
+                "name": "不屈",
+                "activeCount": 2,
+                "effect": "<@ba.vup>地面干员</>被击倒时，有概率立即<@ba.vup>重新部署</><@autochess.gray>（受层数影响）</>\n<在场<@autochess.dgreen>3</>名不同【不屈】干员><@ba.vup>地面干员</>被击倒时使场上所有干员<@ba.vup>技力+5</>",
+                "chars": [
+                  {
+                    "charId": "char_4166_varkis",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4166_varkis.png",
+                    "shopLevel": 1
+                  },
+                  {
+                    "charId": "char_4207_branch",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4207_branch.png",
+                    "shopLevel": 1
+                  },
+                  {
+                    "charId": "char_237_gravel",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_237_gravel.png",
+                    "shopLevel": 2
+                  },
+                  {
+                    "charId": "char_337_utage",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_337_utage.png",
+                    "shopLevel": 2
+                  },
+                  {
+                    "charId": "char_4016_kazema",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4016_kazema.png",
+                    "shopLevel": 3
+                  },
+                  {
+                    "charId": "char_4066_highmo",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4066_highmo.png",
+                    "shopLevel": 3
+                  },
+                  {
+                    "charId": "char_1023_ghost2",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_1023_ghost2.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_4065_judge",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4065_judge.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_416_zumama",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_416_zumama.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_4010_etlchi",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4010_etlchi.png",
+                    "shopLevel": 5
+                  },
+                  {
+                    "charId": "char_350_surtr",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_350_surtr.png",
+                    "shopLevel": 6
+                  }
+                ]
+              },
+              "preciShip": {
+                "bondId": "preciShip",
+                "bondType": 2,
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/preciShip.png",
+                "name": "精准",
+                "activeCount": 2,
+                "effect": "【精准】干员<@ba.vup>攻击力</>提升<@autochess.gray>（受层数影响）</>\n<在场<@autochess.dgreen>3</>名不同【精准】干员>生效范围变为【精准】干员和所有远程干员，且<@ba.vup>攻击无视</>一定的防御力和法术抗性",
+                "chars": [
+                  {
+                    "charId": "char_367_swllow",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_367_swllow.png",
+                    "shopLevel": 1
+                  },
+                  {
+                    "charId": "char_1027_greyy2",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_1027_greyy2.png",
+                    "shopLevel": 2
+                  },
+                  {
+                    "charId": "char_4211_snhunt",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4211_snhunt.png",
+                    "shopLevel": 2
+                  },
+                  {
+                    "charId": "char_332_archet",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_332_archet.png",
+                    "shopLevel": 3
+                  },
+                  {
+                    "charId": "char_4232_hbound",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4232_hbound.png",
+                    "shopLevel": 3
+                  },
+                  {
+                    "charId": "char_427_vigil",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_427_vigil.png",
+                    "shopLevel": 3
+                  },
+                  {
+                    "charId": "char_4027_heyak",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4027_heyak.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_4046_ebnhlz",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4046_ebnhlz.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_430_fartth",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_430_fartth.png",
+                    "shopLevel": 4
+                  },
+                  {
+                    "charId": "char_391_rosmon",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_391_rosmon.png",
+                    "shopLevel": 5
+                  },
+                  {
+                    "charId": "char_4055_bgsnow",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4055_bgsnow.png",
+                    "shopLevel": 5
+                  },
+                  {
+                    "charId": "char_4193_lemuen",
+                    "avatarUrl": "https://web.hycdn.cn/arknights/game/assets/char/avatar/char_4193_lemuen.png",
+                    "shopLevel": 6
+                  }
+                ]
+              },
+              "suntShip": {
+                "bondId": "suntShip",
+                "bondType": 2,
+                "iconUrl": "https://web.hycdn.cn/arknights/game/assets/auto_chess/bond_icon/suntShip.png",
+                "name": "绝技",
+                "activeCount": 2,
+                "effect": "<在场<@autochess.dgreen>2</>名精锐状态的干员>精锐状态的干员攻击力<@ba.vup>+30%</>\n<在场<@autochess.dgreen>5</>名精锐状态的干员>精锐状态的干员技力消耗<@ba.vup>-30%</>\n<@ba.acrem>（所有干员的精锐状态均可激活盟约）</>",
+                "chars": []
+              }
+            },
+            "richText": {
+              "acdm.award": "<color=#04d3a3>{0}</color>",
+              "acdm.buff": "<color=#2da186>{0}</color>",
+              "acdm.hudtip": "<color=#04d3a3>{0}</color>",
+              "acdm.milestone": "<color=#2da186>{0}</color>",
+              "acdm.tracker": "<color=#2da186>{0}</color>",
+              "act.missiontips": "<color=#d9bd6a>{0}</color>",
+              "act.spreward": "<color=#FF5001>{0}</color>",
+              "act.timelimit": "<color=#ffe300>{0}</color>",
+              "arkodcact53side.lv": "<color=#2FA29B>{0}</color>",
+              "attainga.attention": "<color=#E1322C>{0}</color>",
+              "attainga.desc": "<color=#FF0000>{0}</color>",
+              "attainga.desc2": "<color=#FFD800>{0}</color>",
+              "autochess.dgreen": "<color=#40B196>{0}</color>",
+              "autochess.gray": "<color=#777777>{0}</color>",
+              "ba.acrem": "<color=#727272>{0}</color>",
+              "ba.delc": "<color=#ff9000>{0}</color>",
+              "ba.dgrey": "<color=#9a9a9a>{0}</color>",
+              "ba.drop": "<color=#36ACFF>{0}</color>",
+              "ba.enemy": "<color=#D83C3C>{0}</color>",
+              "ba.exl": "<color=#14F0AF>{0}</color>",
+              "ba.gild": "<color=#2FAC78>{0}</color>",
+              "ba.grt": "<color=#FFAB27>{0}</color>",
+              "ba.hrd": "<color=#DA2536>{0}</color>",
+              "ba.kw": "<color=#00B0FF>{0}</color>",
+              "ba.pn": "<i>{0}</i>",
+              "ba.rem": "<color=#F49800>{0}</color>",
+              "ba.talpu": "<color=#0098DC>{0}</color>",
+              "ba.vdown": "<color=#FF6237>{0}</color>",
+              "ba.velc": "<color=#21ffc3>{0}</color>",
+              "ba.vup": "<color=#0098DC>{0}</color>",
+              "ba.xa": "<color=#FF0000>{0}</color>",
+              "ba.xb": "<color=#FF7D00>{0}</color>",
+              "ba.xc": "<color=#FFFF00>{0}</color>",
+              "ba.xd": "<color=#00FF00>{0}</color>",
+              "ba.xe": "<color=#00FFFF>{0}</color>",
+              "ba.xf": "<color=#0291FF>{0}</color>",
+              "ba.xg": "<color=#FF00FF>{0}</color>",
+              "buff.number": "<color=#ede160>{0}</color>",
+              "cc.kw": "<color=#00B0FF>{0}</color>",
+              "cc.miu": "<color=#8F7156>{0}</color>",
+              "cc.pn": "<i>{0}</i>",
+              "cc.rem": "<color=#F49800>{0}</color>",
+              "cc.talpu": "{0}",
+              "cc.vdown": "<color=#FF6237>{0}</color>",
+              "cc.vup": "<color=#0098DC>{0}</color>",
+              "char.amor": "<color=#aa4477>{0}</color>",
+              "char.dolr": "<color=#bb9955>{0}</color>",
+              "char.mort": "<color=#779977>{0}</color>",
+              "char.oblv": "<color=#7799cc>{0}</color>",
+              "char.tmor": "<color=#335566>{0}</color>",
+              "crisisv2.cra": "<color=#d7181c>{0}</color>",
+              "crisisv2.nag": "<color=#ea9818>{0}</color>",
+              "crisisv2.pos": "<color=#16acaa>{0}</color>",
+              "dm.award": "<color=#36BBCC>{0}</color>",
+              "dm.condition": "<color=#C9C9C9>{0}</color>",
+              "dp.level.dis": "<color=#909090>{0}</color>",
+              "dp.level.raid": "<color=#ff1f1f>{0}</color>",
+              "dp.level.rich": "<color=#4970ff>{0}</color>",
+              "duel.dm.award": "<color=#36BBCC>{0}</color>",
+              "duel.dm.condition": "<color=#C9C9C9>{0}</color>",
+              "duel.milestone": "<color=#D4133C>{0}</color>",
+              "duel.ping.high": "<color=#ff3d3d>{0}</color>",
+              "duel.ping.low": "<color=#7fa826>{0}</color>",
+              "duel.ping.medium": "<color=#ec7a00>{0}</color>",
+              "eb.danger": "<color=#FF0000>{0}</color>",
+              "eb.key": "<color=#00FFFF>{0}</color>",
+              "firework.animal": "<color=#0098dc>{0}</color>",
+              "firework.animaldesc_1": "<color=#f05b6d>{0}</color>",
+              "firework.animaldesc_2": "<color=#b7d888>{0}</color>",
+              "firework.animaldesc_3": "<color=#ffc25e>{0}</color>",
+              "firework.animaldesc_4": "<color=#70c0db>{0}</color>",
+              "firework.animaldesc_all": "<color=#ffecb1>{0}</color>",
+              "firework.npc": "<color=#810d17>{0}</color>",
+              "ga.adgacha": "<color=#00C8FF>{0}</color>",
+              "ga.attention": "<color=#FF3126>{0}</color>",
+              "ga.classicgacha": "<color=#00A8FF>{0}</color>",
+              "ga.limadgacha": "<color=#FF7E1F>{0}</color>",
+              "ga.nbgacha": "<color=#00DDBB>{0}</color>",
+              "ga.percent": "<color=#FFD800>{0}</color>",
+              "ga.spgacha": "<color=#FF8A00>{0}</color>",
+              "ga.spgacha.return": "<color=#FFCB00>{0}</color>",
+              "ga.subtitle": "<color=#FFC90E>{0}</color>",
+              "ga.title": "<color=#FFFFFF>{0}</color>",
+              "ga.up": "<color=#FF7F27>{0}</color>",
+              "gacha.text": "<color=#f3e468>{0}</color>",
+              "level.highlight": "<color=#ede161>{0}</color>",
+              "limtedga.21": "<color=#D7BCFF>{0}</color>",
+              "limtedga.attention": "<color=#E1322C>{0}</color>",
+              "limtedga.lattention": "<color=#FF9E58>{0}</color>",
+              "limtedga.percent": "<color=#FFD800>{0}</color>",
+              "limtedga.subtitle": "<color=#FFC90E>{0}</color>",
+              "limtedga.title": "<color=#FFFFFF>{0}</color>",
+              "limtedga.up": "<color=#FF7F27>{0}</color>",
+              "linkagega.charname": "<color=#FFF6A9>{0}</color>",
+              "linkagega.title": "<color=#FF8A00>{0}</color>",
+              "lv.act20side": "<color=#F7BC44>{0}</color>",
+              "lv.act20sre": "<color=#F7BC44>{0}</color>",
+              "lv.description": "<color=#d8d769>{0}</color>",
+              "lv.extrades": "<color=#d8d769>{0}</color>",
+              "lv.ez": "<color=#0098dc>{0}</color>",
+              "lv.fs": "<color=#FF0000>{0}</color>",
+              "lv.hdbg": "<color=#7ba61f>{0}</color>",
+              "lv.item": "<color=#FFFFFF>{0}</color>",
+              "lv.mhfs": "<color=#A57F5B>{0}</color>",
+              "lv.mhitem": "<color=#A57F5B>{0}</color>",
+              "lv.mhtx": "<color=#1B1B1B>{0}</color>",
+              "lv.muitem": "<color=#D4133C>{0}</color>",
+              "lv.pycfs": "<color=#D14631>{0}</color>",
+              "lv.pycitem": "<color=#D14631>{0}</color>",
+              "lv.pyctx": "<color=#1B1B1B>{0}</color>",
+              "lv.rem": "<color=#FFFFFF>{0}</color>",
+              "lv.sand2desc": "<color=#a0a001>{0}</color>",
+              "lv.sp": "<color=#fd4600>{0}</color>",
+              "map.defence": "<color=#36BBCC>{0}</color>",
+              "map.football": "<color=#36BBCC>{0}</color>",
+              "map.normal": "<color=#36BBCC>{0}</color>",
+              "match.success": "<color=#36BBCC>{0}</color>",
+              "milestone": "<color=#D4133C>{0}</color>",
+              "mission.levelname": "<color=#FFDE00>{0}</color>",
+              "mission.number": "<color=#FFDE00>{0}</color>",
+              "multiv3.matchdesc": "<color=#2ea0af>{0}</color>",
+              "multiv3.photodesc": "<color=#31acbc>{0}</color>",
+              "multiv3.teambuff": "<color=#d0294c>{0}</color>",
+              "multiv3.unlocktoast": "<color=#ff3a64>{0}</color>",
+              "ping.high": "<color=#ff3d3d>{0}</color>",
+              "ping.low": "<color=#7fa826>{0}</color>",
+              "ping.medium": "<color=#ec7a00>{0}</color>",
+              "rc.em": "<color=#FF7F27>{0}</color>",
+              "rc.eml": "<color=#32CD32>{0}</color>",
+              "rc.subtitle": "<color=#FFC90E>{0}</color>",
+              "rc.title": "<color=#FFFFFF>{0}</color>",
+              "recalrune.nag": "<color=#c9001c>{0}</color>",
+              "recalrune.pos": "<color=#0098dc>{0}</color>",
+              "ro.get": "<color=#0098DC>{0}</color>",
+              "ro.lose": "<color=#C82A36>{0}</color>",
+              "ro1.get": "<color=#E5B684>{0}</color>",
+              "ro2.desc": "<color=#6d6d6d>{0}</color>",
+              "ro2.get": "<color=#59DDDC>{0}</color>",
+              "ro2.lose": "<color=#FF6E6E>{0}</color>",
+              "ro2.mutation": "<color=#9266b2>{0}</color>",
+              "ro2.virtue": "<color=#0098dc>{0}</color>",
+              "ro3.bluet": "<color=#0085ff>{0}</color>",
+              "ro3.bosst": "<color=#ffffff>{0}</color>",
+              "ro3.get": "<color=#9ed9fd>{0}</color>",
+              "ro3.greent": "<color=#4ffaa5>{0}</color>",
+              "ro3.lose": "<color=#FF6E6E>{0}</color>",
+              "ro3.redt": "<color=#ff4532>{0}</color>",
+              "ro4.get": "<color=#28bfe5>{0}</color>",
+              "ro4.lose": "<color=#FF6E6E>{0}</color>",
+              "ro5.get": "<color=#28bfe5>{0}</color>",
+              "ro5.lose": "<color=#FF6E6E>{0}</color>",
+              "ro6.get": "<color=#38d0d4>{0}</color>",
+              "ro6.lose": "<color=#d13464>{0}</color>",
+              "rolv.rem": "<color=#FF4C22>{0}</color>",
+              "strategy.number": "<color=#018FCE>{0}</color>",
+              "strategy.text": "<color=#018FCE>{0}</color>",
+              "strategy.text2": "<color=#767676>{0}</color>",
+              "token.highlight": "<color=#d8741a>{0}</color>",
+              "trap.combine": "<color=#018FCE>{0}</color>",
+              "trap.debuff": "<color=#d83c3c>{0}</color>",
+              "trap.drop": "<color=#018FCE>{0}</color>",
+              "trap.monster": "<color=#d83c3c>{0}</color>",
+              "trap.number": "<color=#018FCE>{0}</color>",
+              "tu.ht": "<color=#ff8d00>{0}</color>",
+              "tu.imp": "<color=#FF0000>{0}</color>",
+              "tu.kw": "<color=#0098DC>{0}</color>",
+              "tutor": "<color=#36BBCC>{0}</color>",
+              "vc.adgacha": "<color=#0098DC>{0}</color>",
+              "vc.attention": "<color=#FFD800>{0}</color>",
+              "vc.endtime": "<color=#ff0327>{0}</color>",
+              "vc.newyear10": "<color=#FF3823>{0}</color>",
+              "vc.text": "<color=#898989>{0}</color>",
+              "vecbreakv2.highlight": "<color=#d8741a>{0}</color>"
+            },
+            "image": [
+              {
+                "seasonId": "act3autochess",
+                "backgroundPc": "https://bbs.hycdn.cn/image/2026/11/06/9a9c33b6dd9c100239bd2fd0a074b19e.jpg",
+                "backgroundMobile": "https://bbs.hycdn.cn/image/2026/11/06/61469fcfa9cee15fd17a876f2691a7da.png",
+                "logoPc": "https://bbs.hycdn.cn/image/2026/11/06/49f5b200839ae325dcb6fef5739a239a.png",
+                "logoMobile": "https://bbs.hycdn.cn/image/2026/11/06/ceb6b678c1645842ba30976e6b96be18.png",
+                "iconPc": "https://bbs.hycdn.cn/image/2026/11/06/3e07e34f6870d518c62c8a630f57d975.png",
+                "iconMobile": "https://bbs.hycdn.cn/image/2026/11/06/3e057fb371d901e2f8a45d02de6df015.png"
+              }
+            ]
           }
         }
       }
