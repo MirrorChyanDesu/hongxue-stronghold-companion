@@ -13,6 +13,27 @@ namespace ASPAssistant.Tests.Services;
 public class UpdateDownloadTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void InstallationDirectory_UsesManifestRootOnlyForDeclaredMainDirectory(bool organized)
+    {
+        var root = Directory.CreateTempSubdirectory("Hongxue-Layout-").FullName;
+        try
+        {
+            var app = Directory.CreateDirectory(Path.Combine(root, "app")).FullName;
+            File.WriteAllText(Path.Combine(app, "HongxueCompanion.exe"), "test main");
+            if (organized)
+                File.WriteAllText(Path.Combine(root, "update-layout.json"),
+                    """{"formatVersion":1,"executable":"app/HongxueCompanion.exe"}""");
+            UpdateService.ResolveInstallationDirectory(app + Path.DirectorySeparatorChar)
+                .Should().Be(organized ? root : app);
+            var other = Directory.CreateDirectory(Path.Combine(root, "other")).FullName;
+            UpdateService.ResolveInstallationDirectory(other).Should().Be(other);
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Theory]
     [InlineData("", false, "ASPAssistant.App.exe")]
     [InlineData("win-x64", false, "ASPAssistant.App.exe")]
     [InlineData("hongxue-stronghold-companion-v99.0.0-win-x64", false, "ASPAssistant.App.exe")]

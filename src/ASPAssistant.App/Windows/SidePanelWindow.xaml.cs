@@ -130,6 +130,7 @@ public partial class SidePanelWindow : Window
         GameTheme = gameTheme;
 
         InitializeComponent();
+        ConfigurationDirectoryText.Text = settingsManager.DirectoryPath;
         _closeBehavior = closeBehavior;
         CloseBehaviorSelector.SelectedIndex = (int)closeBehavior;
         UpdateCloseButtonTooltip();
@@ -1160,6 +1161,20 @@ public partial class SidePanelWindow : Window
     }
 
     public event Action<bool>? AutomaticPurchaseTrackingChanged;
+    public event Action<PurchaseRecognitionSpeed>? PurchaseRecognitionSpeedChanged;
+
+    public void InitPurchaseRecognitionSpeed(PurchaseRecognitionSpeed speed)
+    {
+        PurchaseSpeedSelector.SelectedIndex = speed switch { PurchaseRecognitionSpeed.Fast => 1, PurchaseRecognitionSpeed.Fastest => 2, _ => 0 };
+        PurchaseSpeedSelector.SelectionChanged += OnPurchaseSpeedChanged;
+    }
+
+    private async void OnPurchaseSpeedChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var speed = PurchaseSpeedSelector.SelectedIndex switch { 1 => PurchaseRecognitionSpeed.Fast, 2 => PurchaseRecognitionSpeed.Fastest, _ => PurchaseRecognitionSpeed.Standard };
+        PurchaseRecognitionSpeedChanged?.Invoke(speed);
+        await SavePreferenceAsync(() => _settingsManager.SavePurchaseRecognitionSpeedAsync(speed), PurchaseSpeedControls);
+    }
 
     public void InitAutomaticPurchaseTracking(bool enabled)
     {

@@ -1,6 +1,9 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Diagnostics;
+using System.Text.Json;
+using ASPAssistant.Core.GameModes.GarrisonProtocol;
 using ASPAssistant.Core.Data;
 using ASPAssistant.Core.Models;
 using ASPAssistant.Core.Services;
@@ -12,6 +15,72 @@ namespace ASPAssistant.Tests.Services;
 [Collection("Native OCR")]
 public class ShopReaderTests(ShopReaderFixture fixture) : IClassFixture<ShopReaderFixture>
 {
+    [Fact]
+    public async Task PurchaseSpeedMeasuresNativeOcrSchedulingAndResourceCost()
+    {
+        var bytes = File.ReadAllBytes(fixture.Sample("shop-tier2-color.png"));
+        var results = new List<object>();
+        var scanGate = typeof(OcrScannerService).GetField("_scanning", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        foreach (var speed in new[] { PurchaseRecognitionSpeed.Standard, PurchaseRecognitionSpeed.Fast, PurchaseRecognitionSpeed.Fastest })
+        {
+            var captures = 0;
+            var engine = new CountingOcr(fixture.Engine);
+            var reader = new ShopReader(engine, fixture.Names) { Theme = GameShopTheme.Closure };
+            using var scanner = new OcrScannerService(() => { Interlocked.Increment(ref captures); return bytes; },
+                new GarrisonOcrStrategy(), reader, engine, new(), fixture.Names, intervalMs: 500)
+                { AutomaticPurchaseTracking = true, PurchaseSpeed = speed };
+            await scanner.ScanNowAsync(); reader.IsShopOpen.Should().BeTrue();
+            captures = 0; engine.Calls = 0;
+            using var process = Process.GetCurrentProcess();
+            var cpu = process.TotalProcessorTime;
+            var allocated = GC.GetTotalAllocatedBytes();
+            var beforeMemory = process.WorkingSet64;
+            var wall = Stopwatch.StartNew();
+            scanner.Start();
+            await Task.Delay(2200);
+            scanner.Dispose();
+            var drain = Stopwatch.StartNew();
+            while ((int)scanGate.GetValue(scanner)! != 0)
+            {
+                if (drain.Elapsed > TimeSpan.FromSeconds(10)) throw new TimeoutException("Native scanner did not finish after stopping its timer");
+                await Task.Delay(5);
+            }
+            wall.Stop(); process.Refresh();
+            var cpuSeconds = (process.TotalProcessorTime - cpu).TotalSeconds;
+            captures.Should().BeGreaterThan(0);
+            engine.MaximumActive.Should().Be(1, "faster scheduling never overlaps native recognition");
+            results.Add(new { Speed = speed.ToString(), TargetIntervalMs = (int)speed, Captures = captures, OcrCalls = engine.Calls,
+                MaximumConcurrentOcr = engine.MaximumActive, WallSeconds = wall.Elapsed.TotalSeconds,
+                ScansPerSecond = captures / wall.Elapsed.TotalSeconds, CpuSeconds = cpuSeconds,
+                CpuPercentOfOneCore = cpuSeconds / wall.Elapsed.TotalSeconds * 100,
+                CpuPercentOfMachine = cpuSeconds / wall.Elapsed.TotalSeconds * 100 / Environment.ProcessorCount,
+                AllocatedBytes = GC.GetTotalAllocatedBytes() - allocated, WorkingSetBefore = beforeMemory, WorkingSetAfter = process.WorkingSet64 });
+        }
+        Directory.CreateDirectory(TestOutput.Directory);
+        File.WriteAllText(Path.Combine(TestOutput.Directory, "purchase-speed-performance.json"), JsonSerializer.Serialize(results, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    private sealed class CountingOcr(IOcrEngine engine) : IOcrEngine
+    {
+        public int Calls;
+        public int MaximumActive;
+        private int _active;
+        private async Task<T> Count<T>(Func<Task<T>> read)
+        {
+            Interlocked.Increment(ref Calls);
+            var active = Interlocked.Increment(ref _active);
+            MaximumActive = Math.Max(MaximumActive, active);
+            try { return await read(); }
+            finally { Interlocked.Decrement(ref _active); }
+        }
+        public Task<IReadOnlyList<OcrTextResult>> RecognizeRegionAsync(byte[] bytes, int x, int y, int width, int height)
+            => Count(() => engine.RecognizeRegionAsync(bytes, x, y, width, height));
+        public Task<IReadOnlyList<OcrTextResult>> RecognizeLineAsync(byte[] bytes, int x, int y, int width, int height)
+            => Count(() => engine.RecognizeLineAsync(bytes, x, y, width, height));
+        public Task<string?> FindCandidateInRegionAsync(byte[] bytes, int x, int y, int width, int height, IReadOnlyList<string> candidates)
+            => Count(() => engine.FindCandidateInRegionAsync(bytes, x, y, width, height, candidates));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

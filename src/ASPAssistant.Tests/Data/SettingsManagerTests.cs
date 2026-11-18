@@ -8,6 +8,30 @@ namespace ASPAssistant.Tests.Data;
 public class SettingsManagerTests : IDisposable
 {
     [Theory]
+    [InlineData(PurchaseRecognitionSpeed.Standard)]
+    [InlineData(PurchaseRecognitionSpeed.Fast)]
+    [InlineData(PurchaseRecognitionSpeed.Fastest)]
+    public async Task PurchaseSpeedRoundTripsWithoutChangingAutomaticPurchases(PurchaseRecognitionSpeed speed)
+    {
+        (await _manager.LoadPurchaseRecognitionSpeedAsync()).Should().Be(PurchaseRecognitionSpeed.Standard);
+        await _manager.SaveAutomaticPurchaseTrackingAsync(true);
+        await _manager.SavePurchaseRecognitionSpeedAsync(speed);
+        (await new SettingsManager(_tempDir).LoadPurchaseRecognitionSpeedAsync()).Should().Be(speed);
+        (await _manager.LoadAutomaticPurchaseTrackingAsync()).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("{")]
+    [InlineData("\"Unknown\"")]
+    [InlineData("123")]
+    public async Task InvalidPurchaseSpeedReturnsToStandard(string json)
+    {
+        await File.WriteAllTextAsync(Path.Combine(_tempDir, "purchase-recognition-speed.json"), json);
+        (await _manager.LoadPurchaseRecognitionSpeedAsync()).Should().Be(PurchaseRecognitionSpeed.Standard);
+    }
+
+    [Theory]
     [InlineData(MainWindowCloseBehavior.Ask)]
     [InlineData(MainWindowCloseBehavior.MinimizeToTray)]
     [InlineData(MainWindowCloseBehavior.Exit)]

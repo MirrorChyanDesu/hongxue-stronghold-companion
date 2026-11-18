@@ -23,6 +23,22 @@ public class OcrScannerService : IDisposable
     private readonly GameState.GameState _gameState;
     private readonly IReadOnlyList<string> _shopNames;
     private readonly Timer _scanTimer;
+    private readonly int _normalScanIntervalMs;
+    private bool _purchaseShopOpen;
+    private bool _disposed;
+    private PurchaseRecognitionSpeed _purchaseSpeed = PurchaseRecognitionSpeed.Standard;
+    public PurchaseRecognitionSpeed PurchaseSpeed
+    {
+        get { lock (_runLock) return _purchaseSpeed; }
+        set
+        {
+            lock (_runLock)
+            {
+                _purchaseSpeed = value;
+                UpdateScanInterval();
+            }
+        }
+    }
     private readonly ShopStateStabilizer _stabilizer = new();
     private readonly ShopPurchaseDetector _purchases = new();
     private ShopEconomy? _purchaseEconomy;
@@ -43,6 +59,7 @@ public class OcrScannerService : IDisposable
                 AppLogger.Info("ShopPurchase", $"Automatic marking enabled={value}, revision={_runRevision}");
                 _purchases.Reset("automatic-marking-changed");
                 _purchaseEconomy = null;
+                UpdateScanInterval();
             }
         }
     }
@@ -160,11 +177,21 @@ public class OcrScannerService : IDisposable
         _informationDetector = new InformationScreenDetector(ocrEngine, ocrStrategy);
         _gameState = gameState;
         _shopNames = shopNames;
+        _normalScanIntervalMs = intervalMs;
         _scanTimer = new Timer(intervalMs);
         _scanTimer.Elapsed += OnScanTick;
     }
 
     public void Start() => _scanTimer.Start();
+
+    // Called under _runLock; changing an unchanged interval would restart the timer.
+    private void UpdateScanInterval()
+    {
+        if (_disposed) return;
+        var interval = _automaticPurchaseTracking && _purchaseShopOpen
+            ? Math.Min(_normalScanIntervalMs, (int)_purchaseSpeed) : _normalScanIntervalMs;
+        if (_scanTimer.Interval != interval) _scanTimer.Interval = interval;
+    }
 
     /// <summary>
     /// Temporarily pauses ban-screen state-machine OCR checks. This is used while
@@ -181,6 +208,7 @@ public class OcrScannerService : IDisposable
             // to avoid immediate false lost/detected transitions after resume.
             _informationState.Suspend();
             _banScreenAbsentTicks = 0;
+            lock (_runLock) { _purchaseShopOpen = false; UpdateScanInterval(); }
         }
         AppLogger.Info("BanScreen", $"Ban screen detection paused={paused}");
     }
@@ -192,13 +220,25 @@ public class OcrScannerService : IDisposable
     private async Task ScanAsync()
     {
         // Skip if a previous scan is still running.
-        if (Interlocked.CompareExchange(ref _scanning, 1, 0) != 0)
-            return;
+        lock (_runLock)
+        {
+            if (_disposed || Interlocked.CompareExchange(ref _scanning, 1, 0) != 0) return;
+        }
 
+        GameConnectionService? connection = null;
+        long captureRevision = 0;
+        byte[]? diagnosticFrame = null;
+        var capturedAt = DateTimeOffset.Now;
+        var diagnosticStatus = "读取中";
+        string? diagnosticError = null;
+        string? rawText = null;
+        object? diagnosticItems = null;
+        var shopOpenThisScan = false;
+        var elapsed = Stopwatch.StartNew();
         try
         {
-            var connection = _getConnection?.Invoke();
-            var captureRevision = connection?.CaptureRevision ?? 0;
+            connection = _getConnection?.Invoke();
+            captureRevision = connection?.CaptureRevision ?? 0;
             if (!ReferenceEquals(connection, _lastConnection) || captureRevision != _lastCaptureRevision)
             {
                 _lastConnection = connection;
@@ -233,13 +273,17 @@ public class OcrScannerService : IDisposable
                 return;
             }
 
+            diagnosticFrame = screenshot;
             // Derive dimensions from the actual PNG bytes so that every downstream
             // coordinate (ROI, card boxes, normalization) lives in the same pixel
             // space as the image MAA will process. Using GetClientRect here was
             // wrong when ScreenCaptureService downscales the capture to MaxCaptureWidth.
             var (imgWidth, imgHeight) = GetPngDimensions(screenshot);
             if (imgWidth <= 0 || imgHeight <= 0)
+            {
+                diagnosticStatus = "截图尺寸无效";
                 return;
+            }
 
             // Ban screen detection runs every tick unless explicitly paused
             // (e.g. when app-owned overlays cover the game window).
@@ -254,6 +298,7 @@ public class OcrScannerService : IDisposable
 
             if (_pauseBanScreenDetection || _banScreenActive)
             {
+                diagnosticStatus = _pauseBanScreenDetection ? "识别已暂停" : "本局信息页，暂停商店读取";
                 lock (_runLock) _purchases.Reset(_pauseBanScreenDetection ? "recognition-paused" : "information-screen");
                 PublishShopItems([]);
                 ObserveBoard(null);
@@ -265,6 +310,11 @@ public class OcrScannerService : IDisposable
             ReadGameTheme(screenshot);
             var rawItems = await _shopReader.ReadAsync(screenshot, imgWidth, imgHeight, _shopNames);
             if (!IsCurrentCapture(connection, captureRevision)) return;
+            shopOpenThisScan = _shopReader.IsShopOpen;
+            rawText = _shopReader.DiagnosticText;
+            diagnosticItems = rawItems.Select(item => new { item.Name, item.Price,
+                Region = new { item.OcrRegion.X, item.OcrRegion.Y, item.OcrRegion.Width, item.OcrRegion.Height } }).ToArray();
+            diagnosticStatus = _shopReader.IsShopOpen ? "商店读取完成；请对照画面检查漏识别或错字" : "未检测到展开的商店";
             PublishShopItems(rawItems);
             await ReadTerminalLevelAsync(screenshot, imgWidth, imgHeight, connection, captureRevision);
             var forceFundsRead = false;
@@ -312,10 +362,22 @@ public class OcrScannerService : IDisposable
         {
             // Swallow unexpected errors (e.g. capture failure during window state change)
             // so the timer-driven async void method never propagates an unhandled exception.
-            AppLogger.Error("OcrScanner", "Scan tick failed", ex);
+            diagnosticStatus = "识别发生异常";
+            diagnosticError = ex.ToString();
+            AppLogger.RecognitionFailure("OcrScanner", "scan", diagnosticError);
         }
         finally
         {
+            lock (_runLock)
+            {
+                _purchaseShopOpen = shopOpenThisScan && !_pauseBanScreenDetection && IsCurrentCapture(connection, captureRevision);
+                UpdateScanInterval();
+            }
+            if (diagnosticFrame is not null && IsCurrentCapture(connection, captureRevision))
+                RecognitionDiagnostics.Record(capturedAt, connection?.IsAdb == true ? "ADB 商店识别" : "桌面商店识别", diagnosticFrame,
+                    new { Status = diagnosticStatus, CaptureRevision = captureRevision, ElapsedMs = elapsed.Elapsed.TotalMilliseconds,
+                        Theme = _shopReader.Theme.ToString(), Items = diagnosticItems, RawText = rawText,
+                        Economy = CurrentEconomy, TerminalLevel = _terminalTracker.Level, Error = diagnosticError });
             Interlocked.Exchange(ref _scanning, 0);
         }
     }
@@ -477,7 +539,11 @@ public class OcrScannerService : IDisposable
 
     public void Dispose()
     {
-        _scanTimer.Stop();
-        _scanTimer.Dispose();
+        lock (_runLock)
+        {
+            _disposed = true;
+            _scanTimer.Stop();
+            _scanTimer.Dispose();
+        }
     }
 }

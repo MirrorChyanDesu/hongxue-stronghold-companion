@@ -23,7 +23,7 @@ public sealed class WpfTestHost : IAsyncLifetime
                 foreach (var resource in new[] { "Themes/Terminal.Dark.xaml", "Styles.xaml", "Logo.xaml" })
                     application.Resources.MergedDictionaries.Add(new ResourceDictionary
                     {
-                        Source = new Uri($"/ASPAssistant.App;component/Resources/{resource}", UriKind.Relative)
+                        Source = new Uri($"/HongxueCompanion;component/Resources/{resource}", UriKind.Relative)
                     });
                 _ready.SetResult(application.Dispatcher);
                 application.Run();
@@ -55,6 +55,7 @@ public sealed class WpfTestHost : IAsyncLifetime
             // Keep their original null context; helpers needing UI continuations install their own.
             var context = SynchronizationContext.Current;
             SynchronizationContext.SetSynchronizationContext(null);
+            ASPAssistant.App.Windows.WindowUiScale.Initialize(new SidebarAppearance());
             ThemeManager.Apply(GameShopTheme.Terminal, true);
             try { test(); }
             finally

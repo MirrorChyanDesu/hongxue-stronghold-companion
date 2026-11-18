@@ -9,6 +9,7 @@ namespace ASPAssistant.Core.Data;
 public class SettingsManager
 {
     private readonly string _settingsDir;
+    public string DirectoryPath => Path.GetFullPath(_settingsDir);
     private readonly SemaphoreSlim _sidePanelPositionLock = new(1, 1);
     private readonly SemaphoreSlim _trackingLock = new(1, 1);
     private readonly SemaphoreSlim _deployPoolLock = new(1, 1);
@@ -308,6 +309,28 @@ public class SettingsManager
     {
         await SavePreferenceAsync("automatic-purchases.json", JsonSerializer.Serialize(enabled));
     }
+
+    public async Task<PurchaseRecognitionSpeed> LoadPurchaseRecognitionSpeedAsync()
+    {
+        try
+        {
+            var value = JsonSerializer.Deserialize<string>(await File.ReadAllTextAsync(Path.Combine(_settingsDir, "purchase-recognition-speed.json")));
+            if (Enum.TryParse<PurchaseRecognitionSpeed>(value, out var speed) && Enum.IsDefined(speed)) return speed;
+            AppLogger.Warn("Settings", "购买识别速度无效，恢复标准档");
+        }
+        catch (IOException ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return PurchaseRecognitionSpeed.Standard;
+        }
+        catch (JsonException ex)
+        {
+            AppLogger.Warn("Settings", $"购买识别速度读取失败，恢复标准档：{ex.Message}");
+        }
+        return PurchaseRecognitionSpeed.Standard;
+    }
+
+    public Task SavePurchaseRecognitionSpeedAsync(PurchaseRecognitionSpeed speed) =>
+        SavePreferenceAsync("purchase-recognition-speed.json", JsonSerializer.Serialize(speed.ToString()));
 
     /// <summary>Draw deployable cells and enemy routes over the game board (on by default).</summary>
     public async Task<bool> LoadShowBoardOverlayAsync()

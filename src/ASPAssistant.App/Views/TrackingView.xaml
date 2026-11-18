@@ -4,7 +4,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:views="clr-namespace:ASPAssistant.App.Views"
              xmlns:controls="clr-namespace:ASPAssistant.App.Controls"
-             xmlns:models="clr-namespace:ASPAssistant.Core.Models;assembly=ASPAssistant.Core"
+             xmlns:models="clr-namespace:ASPAssistant.Core.Models;assembly=HongxueCompanion.Core"
              xmlns:converters="clr-namespace:ASPAssistant.App.Converters"
              Background="{DynamicResource PanelBackgroundBrush}">
     <UserControl.Resources>

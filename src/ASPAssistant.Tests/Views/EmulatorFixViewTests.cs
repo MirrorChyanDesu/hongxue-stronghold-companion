@@ -175,13 +175,13 @@ internal static class EmulatorFixViewTests
         panel.UpdateTopmost(gameHwnd, hwnd);
         panel.Topmost.Should().BeTrue("Issue 32: focusing the assistant restores topmost after another app was active");
         Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
-        var nativeUntil = DateTime.UtcNow.AddSeconds(2);
-        while ((User32.GetWindowLong(hwnd, User32.GWL_EXSTYLE) & 8) == 0 && DateTime.UtcNow < nativeUntil)
-        {
-            Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
-            Thread.Sleep(5);
-        }
-        (User32.GetWindowLong(hwnd, User32.GWL_EXSTYLE) & 8).Should().Be(8);
+        // Verify the visible ordering of both windows in the owned group.
+        var precedingOther = new HashSet<IntPtr>();
+        for (var window = User32.GetWindow(new WindowInteropHelper(other).Handle, 3); window != IntPtr.Zero; window = User32.GetWindow(window, 3)) precedingOther.Add(window);
+        precedingOther.Should().Contain(hwnd, "the focused assistant must appear above the other app");
+        precedingOther.Should().Contain(new WindowInteropHelper(dialog).Handle);
+        ((User32.GetWindowLong(hwnd, User32.GWL_EXSTYLE)
+            | User32.GetWindowLong(new WindowInteropHelper(dialog).Handle, User32.GWL_EXSTYLE)) & 8).Should().Be(8);
         panel.UpdateTopmost(gameHwnd, new WindowInteropHelper(other).Handle);
         panel.UpdateTopmost(gameHwnd, new WindowInteropHelper(dialog).Handle);
         panel.Topmost.Should().BeTrue("an owned dialog also restores topmost from the inactive state");

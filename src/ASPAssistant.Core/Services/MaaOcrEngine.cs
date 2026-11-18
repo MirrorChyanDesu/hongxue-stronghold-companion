@@ -174,18 +174,27 @@ public sealed class MaaOcrEngine : IOcrEngine, IDisposable
         {
             using var imgBuf = new MaaImageBuffer();
             if (!imgBuf.TrySetEncodedData(pngBytes))
+            {
+                AppLogger.RecognitionFailure("MaaOcr", "decode", $"Invalid encoded image; roi={x},{y},{width},{height}");
                 return [];
+            }
 
             var paramJson = BuildOcrParamJson(x, y, width, height, textFilter, onlyRecognition);
 
             var job = _tasker.AppendRecognition("OCR", paramJson, imgBuf);
             var status = job.Wait();
             if (status != MaaJobStatus.Succeeded)
+            {
+                AppLogger.RecognitionFailure("MaaOcr", "job", $"status={status}; roi={x},{y},{width},{height}");
                 return [];
+            }
 
             _tasker.GetTaskDetail(job.Id, out _, out long[]? nodeIds, out _);
             if (nodeIds is not { Length: > 0 })
+            {
+                AppLogger.RecognitionFailure("MaaOcr", "detail", $"Missing node details; roi={x},{y},{width},{height}");
                 return [];
+            }
 
             _tasker.GetNodeDetail(nodeIds[0], out _, out long recoId, out _, out _);
             _tasker.GetRecognitionDetail(recoId, out _, out _, out _,
@@ -193,8 +202,9 @@ public sealed class MaaOcrEngine : IOcrEngine, IDisposable
 
             return ParseOcrDetail(detailJson);
         }
-        catch
+        catch (Exception ex)
         {
+            AppLogger.RecognitionFailure("MaaOcr", "exception", $"roi={x},{y},{width},{height}; {ex}");
             return [];
         }
     }
@@ -280,8 +290,9 @@ public sealed class MaaOcrEngine : IOcrEngine, IDisposable
             }
             return results;
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or KeyNotFoundException or IndexOutOfRangeException)
         {
+            AppLogger.RecognitionFailure("MaaOcr", "parse", ex.ToString());
             return [];
         }
     }

@@ -36,6 +36,37 @@ public class ThemeAndHighlightTests(WpfTestHost ui) : IClassFixture<WpfTestHost>
     [InlineData(GameShopTheme.Closure, true)]
     [InlineData(GameShopTheme.Ursus, false)]
     [InlineData(GameShopTheme.Ursus, true)]
+    public Task Configuration_ShowsDirectoryAndUnifiedActions(GameShopTheme theme, bool night)
+        => ui.RunAsync(() => ConfigurationViewTests.Verify(theme, night), $"Configuration-{theme}-{night}");
+
+    [Theory]
+    [InlineData(GameShopTheme.Terminal, false)]
+    [InlineData(GameShopTheme.Terminal, true)]
+    [InlineData(GameShopTheme.Closure, false)]
+    [InlineData(GameShopTheme.Closure, true)]
+    [InlineData(GameShopTheme.Ursus, false)]
+    [InlineData(GameShopTheme.Ursus, true)]
+    public Task UpdateHistory_FoldsVersionsAcrossThemes(GameShopTheme theme, bool night)
+        => ui.RunAsync(() => UpdateHistoryViewTests.Verify(theme, night), $"UpdateHistory-{theme}-{night}");
+
+    [Theory]
+    [InlineData(GameShopTheme.Terminal, false)]
+    [InlineData(GameShopTheme.Terminal, true)]
+    [InlineData(GameShopTheme.Closure, false)]
+    [InlineData(GameShopTheme.Closure, true)]
+    [InlineData(GameShopTheme.Ursus, false)]
+    [InlineData(GameShopTheme.Ursus, true)]
+    public Task Feedback_ReviewsDiagnosticsAcrossThemes(GameShopTheme theme, bool night)
+        => ui.RunAsync(() => FeedbackViewTests.Verify(theme, night), $"Feedback-{theme}-{night}");
+
+
+    [Theory]
+    [InlineData(GameShopTheme.Terminal, false)]
+    [InlineData(GameShopTheme.Terminal, true)]
+    [InlineData(GameShopTheme.Closure, false)]
+    [InlineData(GameShopTheme.Closure, true)]
+    [InlineData(GameShopTheme.Ursus, false)]
+    [InlineData(GameShopTheme.Ursus, true)]
     public Task PageScalesAndDialogs_AcrossThemes(GameShopTheme theme, bool night)
         => ui.RunAsync(() => PageScaleDialogViewTests.Verify(theme, night), $"PageScalesAndDialogs-{theme}-{night}");
 
@@ -651,7 +682,7 @@ public class ThemeAndHighlightTests(WpfTestHost ui) : IClassFixture<WpfTestHost>
             Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
             view.UpdateLayout(); dialog.UpdateLayout();
             var expected = new ResourceDictionary { Source = new Uri(
-                $"/ASPAssistant.App;component/Resources/Themes/{theme}.{(night ? "Dark" : "Light")}.xaml", UriKind.Relative) };
+                $"/HongxueCompanion;component/Resources/Themes/{theme}.{(night ? "Dark" : "Light")}.xaml", UriKind.Relative) };
             Color ColorOf(string key) => ((SolidColorBrush)expected[key]).Color;
             ((SolidColorBrush)view.Background).Color.Should().Be(ColorOf("PanelBackgroundBrush"));
             backgrounds.Add(((SolidColorBrush)view.Background).Color);

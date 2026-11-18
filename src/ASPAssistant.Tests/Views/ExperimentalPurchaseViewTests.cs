@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Text.Json;
 using System.Windows.Threading;
 using ASPAssistant.App;
 using ASPAssistant.App.Windows;
@@ -29,12 +30,19 @@ internal static class ExperimentalPurchaseViewTests
         var events = new List<bool>();
         panel.AutomaticPurchaseTrackingChanged += events.Add;
         panel.InitAutomaticPurchaseTracking(Task.Run(settings.LoadAutomaticPurchaseTrackingAsync).GetAwaiter().GetResult());
+        var speedEvents = new List<PurchaseRecognitionSpeed>();
+        panel.PurchaseRecognitionSpeedChanged += speedEvents.Add;
+        panel.InitPurchaseRecognitionSpeed(Task.Run(settings.LoadPurchaseRecognitionSpeedAsync).GetAwaiter().GetResult());
         try
         {
             panel.Show(); ThemeManager.Apply(theme, night); Pump();
             ((Button)panel.FindName("SettingsButton")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump();
             var toggle = (CheckBox)panel.FindName("AutomaticPurchaseTrackingToggle");
             var peer = (CheckBox)panel.FindName("MultiLineupTrackingToggle");
+            var selector = (ListBox)panel.FindName("PurchaseSpeedSelector");
+            var speedControls = (StackPanel)panel.FindName("PurchaseSpeedControls");
+            selector.SelectedIndex.Should().Be(0); selector.IsEnabled.Should().BeFalse();
+            selector.Items.Cast<ListBoxItem>().Select(item => item.Content).Should().Equal("标准", "快速", "极速");
             toggle.IsChecked.Should().BeFalse(); events.Should().BeEmpty();
             toggle.Style.Should().BeSameAs(peer.Style);
             System.Windows.Automation.AutomationProperties.GetName(toggle).Should().Be("自动标记购买（实验性）");
@@ -49,7 +57,26 @@ internal static class ExperimentalPurchaseViewTests
                     toggle.IsEnabled.Should().BeTrue();
                     Task.Run(settings.LoadAutomaticPurchaseTrackingAsync).GetAwaiter().GetResult().Should().Be(enabled);
                     events.Last().Should().Be(enabled);
-                    toggle.BringIntoView(); Pump();
+                    selector.IsEnabled.Should().Be(enabled);
+                    if (enabled)
+                    {
+                        foreach (var index in new[] { 1, 2, 0 })
+                        {
+                            selector.SelectedIndex = index;
+                            var savedUntil = DateTime.UtcNow.AddSeconds(5);
+                            while (!speedControls.IsEnabled && DateTime.UtcNow < savedUntil) Pump();
+                            speedControls.IsEnabled.Should().BeTrue();
+                            var expected = index switch { 1 => PurchaseRecognitionSpeed.Fast, 2 => PurchaseRecognitionSpeed.Fastest, _ => PurchaseRecognitionSpeed.Standard };
+                            speedEvents.Last().Should().Be(expected);
+                            Task.Run(settings.LoadPurchaseRecognitionSpeedAsync).GetAwaiter().GetResult().Should().Be(expected);
+                            selector.IsEnabled.Should().BeTrue();
+                        }
+                        selector.SelectedIndex = 2;
+                        while (!speedControls.IsEnabled) Pump();
+                    }
+                    selector.SelectedIndex.Should().Be(2, "disabling keeps the chosen speed");
+                    var card = (Border)((StackPanel)((DockPanel)toggle.Parent).Parent).Parent;
+                    card.BringIntoView(); Pump();
                     toggle.ActualWidth.Should().BeApproximately(peer.ActualWidth, .5);
                     toggle.ActualHeight.Should().BeApproximately(peer.ActualHeight, .5);
                     var row = (DockPanel)VisualTreeHelper.GetParent(toggle);
@@ -58,10 +85,19 @@ internal static class ExperimentalPurchaseViewTests
                         var bounds = text.TransformToAncestor(row).TransformBounds(new Rect(text.RenderSize));
                         bounds.Right.Should().BeLessThanOrEqualTo(row.ActualWidth + .5);
                     }
-                    Save(row, theme, night, width, enabled);
+                    Save(card, theme, night, width, enabled);
                 }
             }
             events.Should().Equal(true, false, true, false, true, false);
+            var hint = (TextBlock)panel.FindName("PurchaseSpeedHint");
+            var foreground = ((SolidColorBrush)hint.Foreground).Color;
+            var background = ((SolidColorBrush)panel.FindResource("CardBackgroundBrush")).Color;
+            static double Channel(byte value) { var n = value / 255.0; return n <= .04045 ? n / 12.92 : Math.Pow((n + .055) / 1.055, 2.4); }
+            static double Luminance(Color color) => .2126 * Channel(color.R) + .7152 * Channel(color.G) + .0722 * Channel(color.B);
+            var a = Luminance(foreground); var b = Luminance(background);
+            var ratio = (Math.Max(a, b) + .05) / (Math.Min(a, b) + .05);
+            ratio.Should().BeGreaterThanOrEqualTo(4.5);
+            File.WriteAllText(Path.Combine(TestOutput.Directory, "experimental-purchases", $"contrast-{theme}-{night}.json"), JsonSerializer.Serialize(new { Hint = ratio }));
         }
         finally { panel.Close(); Directory.Delete(folder, true); }
     }
@@ -83,7 +119,6 @@ internal static class ExperimentalPurchaseViewTests
         var timer = new DispatcherTimer(DispatcherPriority.ApplicationIdle) { Interval = TimeSpan.FromMilliseconds(240) };
         timer.Tick += (_, _) => { timer.Stop(); frame.Continue = false; };
         timer.Start(); Dispatcher.PushFrame(frame);
-        view.BringIntoView(); Pump();
         var root = (FrameworkElement)Window.GetWindow(view)!.Content;
         root.UpdateLayout();
         var full = new RenderTargetBitmap((int)Math.Ceiling(root.ActualWidth), (int)Math.Ceiling(root.ActualHeight), 96, 96, PixelFormats.Pbgra32);

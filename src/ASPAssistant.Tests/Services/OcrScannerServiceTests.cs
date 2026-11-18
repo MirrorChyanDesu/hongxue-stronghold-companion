@@ -12,6 +12,70 @@ namespace ASPAssistant.Tests.Services;
 
 public class OcrScannerServiceTests
 {
+    [Theory]
+    [InlineData(PurchaseRecognitionSpeed.Standard, 500)]
+    [InlineData(PurchaseRecognitionSpeed.Fast, 300)]
+    [InlineData(PurchaseRecognitionSpeed.Fastest, 200)]
+    public async Task PurchaseSpeedAcceleratesOnlyAnOpenShopAndRestoresNormalScheduling(PurchaseRecognitionSpeed speed, int interval)
+    {
+        var available = true;
+        using var scanner = new OcrScannerService(() => available ? _screenshot : null, new GarrisonOcrStrategy(),
+            new ShopReader(_ocr.Object, _names) { Theme = GameShopTheme.Closure }, _ocr.Object, new(), _names, intervalMs: 500)
+            { AutomaticPurchaseTracking = true, PurchaseSpeed = speed };
+        double Interval() => ((System.Timers.Timer)typeof(OcrScannerService).GetField("_scanTimer", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(scanner)!).Interval;
+        Interval().Should().Be(500, "unseen shop must not accelerate");
+        await scanner.ScanNowAsync(); Interval().Should().Be(interval);
+        scanner.AutomaticPurchaseTracking = false; Interval().Should().Be(500);
+        scanner.PurchaseSpeed.Should().Be(speed);
+        scanner.AutomaticPurchaseTracking = true; Interval().Should().Be(interval);
+        scanner.SetBanScreenDetectionPaused(true); Interval().Should().Be(500);
+        scanner.SetBanScreenDetectionPaused(false);
+        await scanner.ScanNowAsync(); Interval().Should().Be(interval);
+        available = false;
+        await scanner.ScanNowAsync(); Interval().Should().Be(500);
+        available = true;
+        await scanner.ScanNowAsync(); Interval().Should().Be(interval);
+        _shopTexts = [];
+        await scanner.ScanNowAsync(); Interval().Should().Be(500, "closed shop returns to ordinary scans");
+    }
+
+    [Theory]
+    [InlineData(PurchaseRecognitionSpeed.Fast)]
+    [InlineData(PurchaseRecognitionSpeed.Fastest)]
+    public async Task ChangingPurchaseSpeedRetainsAnExistingBaseline(PurchaseRecognitionSpeed speed)
+    {
+        var reader = CreateEconomyReader();
+        var money = 20;
+        _ocr.Setup(e => e.RecognizeLineAsync(It.IsAny<byte[]>(), It.Is<int>(x => x > 1700), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>()))
+            .Returns((byte[] _, int x, int y, int _, int _) => Task.FromResult<IReadOnlyList<OcrTextResult>>([new(money.ToString(), (x, y, 20, 30))]));
+        using var scanner = new OcrScannerService(() => _screenshot, new GarrisonOcrStrategy(),
+            new ShopReader(_ocr.Object, _names) { Theme = GameShopTheme.Closure }, _ocr.Object, new(), _names, intervalMs: 500)
+            { EconomyReader = reader, PurchaseTargets = () => _names.ToHashSet(), AutomaticPurchaseTracking = true };
+        var purchased = new List<string>();
+        scanner.PurchasesDetected += (names, _, _) => purchased.AddRange(names);
+        await scanner.ScanNowAsync(); await scanner.ScanNowAsync();
+        var revision = scanner.RunRevision;
+        scanner.PurchaseSpeed = speed;
+        scanner.RunRevision.Should().Be(revision);
+        _shopTexts = _shopTexts.Where(text => text.Text != "坚守盾牌").ToArray(); money = 19;
+        await scanner.ScanNowAsync();
+        purchased.Should().BeEmpty("the first empty frame still needs confirmation");
+        await scanner.ScanNowAsync();
+        purchased.Should().Equal("坚守盾牌");
+        await scanner.ScanNowAsync(); purchased.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task DisposedScannerDoesNotCaptureAgain()
+    {
+        var captures = 0;
+        var scanner = CreateScanner(() => { captures++; return _screenshot; }, new());
+        scanner.Dispose();
+        scanner.PurchaseSpeed = PurchaseRecognitionSpeed.Fastest;
+        await scanner.ScanNowAsync();
+        captures.Should().Be(0);
+    }
+
     [Fact]
     public async Task ShopEconomyPublishesOnlyConfirmedValuesAndResetClearsThem()
     {

@@ -16,7 +16,7 @@ public static class ThemeManager
 {
     private static readonly ResourceDictionary Palette = new()
     {
-        Source = new Uri("/ASPAssistant.App;component/Resources/Themes/Terminal.Dark.xaml", UriKind.Relative)
+        Source = new Uri("/HongxueCompanion;component/Resources/Themes/Terminal.Dark.xaml", UriKind.Relative)
     };
     private static readonly Dictionary<string, SolidColorBrush> ColorSources = new();
 
@@ -45,7 +45,7 @@ public static class ThemeManager
         var name = theme switch { GameShopTheme.Ursus => "Ursus", GameShopTheme.Closure => "Closure", _ => "Terminal" };
         var colors = new ResourceDictionary
         {
-            Source = new Uri($"/ASPAssistant.App;component/Resources/Themes/{name}.{(night ? "Dark" : "Light")}.xaml",
+            Source = new Uri($"/HongxueCompanion;component/Resources/Themes/{name}.{(night ? "Dark" : "Light")}.xaml",
                 UriKind.Relative)
         };
         foreach (string key in colors.Keys)

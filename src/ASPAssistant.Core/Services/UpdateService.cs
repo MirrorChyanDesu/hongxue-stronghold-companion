@@ -184,7 +184,8 @@ public partial class UpdateService
         var sourceDir = subDirs.Length == 1 && Directory.GetFiles(extractDir).Length == 0 ? subDirs[0] : extractDir;
         var newExecutable = ResolvePackageExecutable(sourceDir);
 
-        var appDir = AppContext.BaseDirectory.TrimEnd('\\', '/');
+        var mainDirectory = Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory);
+        var appDir = ResolveInstallationDirectory(mainDirectory);
         var parentDir = Path.GetDirectoryName(appDir) ?? appDir;
         var stamp = $"{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}";
         var scriptPath = Path.Combine(tempDir, "update.ps1");
@@ -193,7 +194,7 @@ public partial class UpdateService
             Environment.ProcessId,
             sourceDir,
             appDir,
-            Path.Combine(appDir, AppExecutableName),
+            Path.Combine(mainDirectory, "HongxueCompanion.exe"),
             Path.Combine(parentDir, $"ASPAssistant-Staging-{stamp}"),
             Path.Combine(parentDir, $"ASPAssistant-backup-{stamp}"),
             Path.Combine(tempDir, "update.log"),
@@ -229,6 +230,19 @@ public partial class UpdateService
     private sealed record PackageLayout(
         [property: JsonPropertyName("formatVersion")] int FormatVersion,
         [property: JsonPropertyName("executable")] string? Executable);
+
+    internal static string ResolveInstallationDirectory(string mainDirectory)
+    {
+        var directory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(mainDirectory));
+        var parent = Path.GetDirectoryName(directory);
+        if (parent is not null && File.Exists(Path.Combine(parent, "update-layout.json")))
+        {
+            var executable = ResolvePackageExecutable(parent);
+            if (string.Equals(Path.GetFullPath(Path.Combine(parent, executable)), Path.Combine(directory, "HongxueCompanion.exe"), StringComparison.OrdinalIgnoreCase))
+                return parent;
+        }
+        return directory;
+    }
 
     /// <summary>
     /// 启动已暂存的更新脚本（应在应用即将退出时调用）。
@@ -356,6 +370,7 @@ public partial class UpdateService
         sb.AppendLine($"$stagingDir = {Q(stagingDir)}");
         sb.AppendLine($"$backupDir = {Q(backupDir)}");
         sb.AppendLine($"$exePath = {Q(exePath)}");
+        sb.AppendLine($"$oldExecutable = {Q(Path.GetRelativePath(appDir, exePath))}");
         sb.AppendLine($"$newExecutable = {Q(newExecutableRelativePath)}");
         sb.AppendLine($"$logPath = {Q(logPath)}");
         sb.AppendLine("$silent = ($env:ASPA_UPDATE_SILENT -eq '1')");
@@ -390,7 +405,7 @@ public partial class UpdateService
         sb.AppendLine();
         sb.AppendLine("function Start-OldVersion {");
         sb.AppendLine("    if (Get-Process -Id $appPid -ErrorAction SilentlyContinue) { return }");
-        sb.AppendLine("    $oldExe = Join-Path -Path $appDir -ChildPath (Split-Path -Leaf $exePath)");
+        sb.AppendLine("    $oldExe = Join-Path -Path $appDir -ChildPath $oldExecutable");
         sb.AppendLine("    if (Test-Path -LiteralPath $oldExe) {");
         sb.AppendLine("        Write-Log \"starting previous version: $oldExe\"");
         sb.AppendLine("        $oldProcess = Start-Version $oldExe ''");

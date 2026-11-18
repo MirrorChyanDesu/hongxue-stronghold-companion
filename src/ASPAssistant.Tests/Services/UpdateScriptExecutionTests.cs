@@ -165,6 +165,39 @@ public class UpdateScriptExecutionTests(ITestOutputHelper output) : IAsyncLifeti
         }
     }
 
+    [Theory]
+    [InlineData("ready")]
+    [InlineData("failed")]
+    [InlineData("exit")]
+    [InlineData("no-result")]
+    public async Task OrganizedUpdate_ReplacesInstallationRootAndRestoresNestedMainOnFailure(string mode)
+    {
+        var (app, source) = await PrepareFilesAsync(_root, "中文 空格 & [目录] O'Neil $整理版");
+        foreach (var directory in new[] { app, source })
+        {
+            var runtime = Directory.CreateDirectory(Path.Combine(directory, "app")).FullName;
+            File.Move(Path.Combine(directory, "ASPAssistant.App.exe"), Path.Combine(runtime, "HongxueCompanion.exe"));
+            File.Move(Path.Combine(directory, "version.txt"), Path.Combine(runtime, "version.txt"));
+            await File.WriteAllTextAsync(Path.Combine(directory, "update-layout.json"),
+                """{"formatVersion":1,"executable":"app/HongxueCompanion.exe"}""");
+            await File.WriteAllTextAsync(Path.Combine(directory, "HongxueCompanion.exe"), "root launcher must not be executed by updater");
+        }
+        await File.WriteAllTextAsync(Path.Combine(source, "app", "startup-mode.txt"), mode);
+        UpdateService.ResolveInstallationDirectory(Path.Combine(app, "app")).Should().Be(app);
+        var result = await RunUpdateAsync(_root, app, source, shortWait: mode == "no-result");
+        result.ExitCode.Should().Be(mode == "ready" ? 0 : 1, result.Output);
+        var expected = mode is "ready" or "no-result" ? "new" : "old";
+        await AssertStartedAsync(Path.Combine(app, "app"), expected);
+        (await File.ReadAllTextAsync(Path.Combine(app, "app", "version.txt"))).Should().Be(expected);
+        Directory.Exists(Path.Combine(app, "app", "app")).Should().BeFalse();
+        Directory.Exists(Path.Combine(_root, "backup")).Should().Be(mode == "no-result");
+        if (expected == "old")
+        {
+            File.Exists(Path.Combine(app, "old-only.txt")).Should().BeTrue();
+            File.Exists(Path.Combine(app, "new-only.txt")).Should().BeFalse();
+        }
+    }
+
     [Fact]
     public async Task NewVersionLaunchFails_RestoresCompleteOldDirectory()
     {
@@ -370,7 +403,7 @@ public class UpdateScriptExecutionTests(ITestOutputHelper output) : IAsyncLifeti
         string root, string app, string source, int pid = int.MaxValue, bool shortWait = false, string prefix = "")
     {
         var runtime = Path.GetDirectoryName(Path.Combine(app, UpdateService.ResolvePackageExecutable(source)))!;
-        var script = UpdateService.BuildUpdateScript(pid, source, app, Path.Combine(app, "ASPAssistant.App.exe"),
+        var script = UpdateService.BuildUpdateScript(pid, source, app, Path.Combine(app, UpdateService.ResolvePackageExecutable(app)),
             Path.Combine(root, "staging"), Path.Combine(root, "backup"), Path.Combine(root, "update.log"), UpdateService.ResolvePackageExecutable(source));
         if (shortWait) script = script.Replace("$timeout = 300", "$timeout = 1")
             .Replace("$startupTimeout = 60", "$startupTimeout = 1");
