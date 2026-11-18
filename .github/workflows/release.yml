@@ -214,3 +214,16 @@ jobs:
             publish/SHA256SUMS.txt
             publish/PACKAGE-MANIFEST.txt
           fail_on_unmatched_files: true
+
+  dispatch-mirrorchyan:
+    if: ${{ github.repository_owner == 'bingyunhe' }}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Trigger MirrorChyan upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh workflow run mirrorchyan_release.yml --repo "$GITHUB_REPOSITORY" -f tag="$RELEASE_TAG"
