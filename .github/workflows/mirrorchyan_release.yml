@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: GitHub Release tag (defaults to the latest release)
+        default: ''
         required: false
-        type: string
 
 jobs:
   mirrorchyan:
@@ -15,40 +14,26 @@ jobs:
     permissions:
       contents: read
       issues: write
-    outputs:
-      tag: ${{ steps.release.outputs.tag }}
-    steps:
-      - name: Resolve release tag
-        id: release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
-        run: |
-          if [[ -z "$RELEASE_TAG" ]]; then
-            RELEASE_TAG=$(gh release view --repo bingyunhe/hongxue-stronghold-companion --json tagName --jq .tagName)
-          fi
-          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: win
+            arch: x64
+            filename: 'hongxue-stronghold-companion-v*-win-x64.zip'
 
+    steps:
       - uses: MirrorChyan/uploading-action@v1
         with:
           filetype: latest-release
-          filename: hongxue-stronghold-companion-v*-win-x64.zip
+          filename: ${{ matrix.filename }}
           mirrorchyan_rid: hongxue-stronghold-companion
-          tag: ${{ steps.release.outputs.tag }}
-          os: win
-          arch: x64
+          tag: ${{ inputs.tag }}
+
+          os: ${{ matrix.os }}
+          arch: ${{ matrix.arch }}
+
           owner: bingyunhe
           repo: hongxue-stronghold-companion
-          github_token: ${{ github.token }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           upload_token: ${{ secrets.MirrorChyanUploadToken }}
-
-  sync-release-note:
-    needs: mirrorchyan
-    permissions:
-      contents: read
-      issues: write
-    uses: ./.github/workflows/mirrorchyan_release_note.yml
-    with:
-      tag: ${{ needs.mirrorchyan.outputs.tag }}
-    secrets:
-      MirrorChyanUploadToken: ${{ secrets.MirrorChyanUploadToken }}

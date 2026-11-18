@@ -4,17 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: GitHub Release tag (defaults to the latest release)
+        default: ''
         required: false
-        type: string
-  workflow_call:
-    inputs:
-      tag:
-        required: true
-        type: string
-    secrets:
-      MirrorChyanUploadToken:
-        required: true
   release:
     types: [edited]
 
@@ -25,23 +16,15 @@ jobs:
     permissions:
       contents: read
       issues: write
-    steps:
-      - name: Resolve release tag
-        id: release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
-        run: |
-          if [[ -z "$RELEASE_TAG" ]]; then
-            RELEASE_TAG=$(gh release view --repo bingyunhe/hongxue-stronghold-companion --json tagName --jq .tagName)
-          fi
-          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
 
-      - uses: MirrorChyan/release-note-action@v1
+    steps:
+      - id: uploading
+        uses: MirrorChyan/release-note-action@v1
         with:
           mirrorchyan_rid: hongxue-stronghold-companion
-          version_name: ${{ steps.release.outputs.tag }}
+          version_name: ${{ inputs.tag || github.event.release.tag_name }}
+
           owner: bingyunhe
           repo: hongxue-stronghold-companion
-          github_token: ${{ github.token }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           upload_token: ${{ secrets.MirrorChyanUploadToken }}
