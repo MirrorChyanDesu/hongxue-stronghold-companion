@@ -92,5 +92,5 @@
     <CornerRadius x:Key="DotCornerRadius">1</CornerRadius>
     <sys:Double x:Key="RowRadiusValue">2</sys:Double>
     <Thickness x:Key="TitleDecorThickness">0,0,0,3</Thickness>
-    <FontFamily x:Key="NumberFontFamily">pack://application:,,,/ASPAssistant.App;component/Resources/Fonts/#Oswald, pack://application:,,,/ASPAssistant.App;component/Resources/Fonts/#Oswald SemiBold, Segoe UI, Microsoft YaHei UI</FontFamily>
+    <FontFamily x:Key="NumberFontFamily">pack://application:,,,/HongxueCompanion;component/Resources/Fonts/#Oswald, pack://application:,,,/HongxueCompanion;component/Resources/Fonts/#Oswald SemiBold, Segoe UI, Microsoft YaHei UI</FontFamily>
 </ResourceDictionary>

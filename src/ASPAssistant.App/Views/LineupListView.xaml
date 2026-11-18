@@ -5,7 +5,7 @@
              xmlns:controls="clr-namespace:ASPAssistant.App.Controls"
              xmlns:views="clr-namespace:ASPAssistant.App.Views"
              xmlns:converters="clr-namespace:ASPAssistant.App.Converters"
-             xmlns:viewModels="clr-namespace:ASPAssistant.Core.ViewModels;assembly=ASPAssistant.Core"
+             xmlns:viewModels="clr-namespace:ASPAssistant.Core.ViewModels;assembly=HongxueCompanion.Core"
              Background="{DynamicResource PanelBackgroundBrush}">
     <UserControl.Resources>
         <converters:LineupTrackedConverter x:Key="LineupTracked" />

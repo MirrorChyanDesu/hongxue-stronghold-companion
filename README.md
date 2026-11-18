@@ -41,7 +41,7 @@
 
 鸿雪·卫戍助手是《明日方舟》卫戍协议的侧边辅助工具，读取游戏画面，帮助录入本局信息、标记商店追踪目标，并提供干员和装备查询、阵容管理、阵容规划与站位参考。支持 PC 客户端和 MuMu、雷电 / ADB 连接。
 
-项目原名 ASP Assistant · Arknights。程序文件仍名为 `ASPAssistant.App.exe`；v1.9.3 同时提供后续文件改名和目录整理的更新衔接；v1.9.0 起配置保存在 `%APPDATA%\HongxueCompanion`，启动时自动合并旧项目配置，无需手动搬迁阵容。
+项目原名 ASP Assistant · Arknights。v1.9.4 起根目录主入口改为 `HongxueCompanion.exe`，保留 `ASPAssistant.App.exe` 兼容旧版自动更新和已有快捷方式；主程序与依赖集中到 `app` 文件夹，许可与归属文件集中到 `licenses`。v1.4.0 及之后版本无需先安装 v1.9.3，可直接自动更新；更早版本建议完整下载安装。v1.9.0 起配置保存在 `%APPDATA%\HongxueCompanion`，启动时自动合并旧项目配置，无需手动搬迁阵容。
 
 | 页面 | 内容 |
 | --- | --- |
@@ -56,7 +56,7 @@
 
 1. 从 [Releases](https://github.com/bingyunhe/hongxue-stronghold-companion/releases/latest) 的 Assets 下载以 `-win-x64.zip` 结尾的 Windows 包；`Source code` 是源码。
 2. 右键“全部解压”到独立目录，保留全部文件及 `data`、`runtimes` 等文件夹。
-3. 进入解压后的应用目录，双击 `ASPAssistant.App.exe`。若 ZIP 内有同名顶层文件夹，请先打开它。独立运行包带有 .NET、识别模型和所需运行库。
+3. 进入解压后的应用目录，双击根目录的 `HongxueCompanion.exe`。若 ZIP 内有同名顶层文件夹，请先打开它，并保留完整的 `app` 文件夹。独立运行包带有 .NET、识别模型和所需运行库。
 4. 首次启动时选择与游戏一致的商店主题；也可在设置中开启自动主题。需要时配置截屏录入和隐藏助手快捷键。
 5. 模拟器用户在设置的“游戏连接…”中选择 MuMu / ADB，再选择对应实例、窗口及游戏屏幕，见[连接说明](#连接-mumu--adb)。
 

@@ -1,13 +1,14 @@
 <!-- Modified for ASP Assistant Regulation on 2026-11-09; see NOTICE. -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <AssemblyName>HongxueCompanion</AssemblyName>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <!-- Version is overridden by CI via -p:Version=x.y.z during release builds -->
-    <Version>1.9.3</Version>
+    <Version>1.9.4</Version>
     <AssemblyTitle>Hongxue Stronghold Companion</AssemblyTitle>
     <Product>Hongxue Stronghold Companion</Product>
     <!-- Custom entry point with OS version guard (Program.cs); overrides WPF auto-generated Main -->

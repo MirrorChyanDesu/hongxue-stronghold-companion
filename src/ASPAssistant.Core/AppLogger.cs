@@ -12,7 +12,9 @@ public static class AppLogger
 {
     private static string? _logFilePath;
     private static readonly object _lock = new();
+    private static readonly Dictionary<string, (long At, int Suppressed)> _repeated = new();
     private static Func<bool> _isGamePresent = static () => true;
+    public static string? LogFilePath => _logFilePath;
 
     public static void SetGamePresenceCheck(Func<bool> isGamePresent) =>
         Volatile.Write(ref _isGamePresent, isGamePresent);
@@ -67,6 +69,23 @@ public static class AppLogger
     public static void Error(string component, string message, Exception ex) =>
         WriteLine("ERROR", component, $"{message}: {ex}");
 
+    public static void RecognitionFailure(string component, string stage, string detail)
+    {
+        lock (_lock)
+        {
+            var key = component + ":" + stage;
+            var now = System.Diagnostics.Stopwatch.GetTimestamp();
+            _repeated.TryGetValue(key, out var previous);
+            if (previous.At != 0 && System.Diagnostics.Stopwatch.GetElapsedTime(previous.At, now) < TimeSpan.FromSeconds(30))
+            {
+                _repeated[key] = (previous.At, previous.Suppressed + 1);
+                return;
+            }
+            _repeated[key] = (now, 0);
+            WriteLine("ERROR", component, $"{stage}: {detail}; suppressed={previous.Suppressed}");
+        }
+    }
+
     public static string? SaveArtifact(string prefix, byte[] bytes, string extension = ".bin")
     {
         try
@@ -115,7 +134,8 @@ public static class AppLogger
 
     private static void WriteLine(string level, string component, string message)
     {
-        if (level != "ERROR" && !Volatile.Read(ref _isGamePresent)()) return;
+        if ((level == "INFO " || (level == "WARN " && component is "ScreenCapture" or "AdbCapture"))
+            && !Volatile.Read(ref _isGamePresent)()) return;
         var line = $"[{DateTime.Now:HH:mm:ss.fff}] [{level}] [{component}] {message}";
         System.Diagnostics.Debug.WriteLine(line);
 

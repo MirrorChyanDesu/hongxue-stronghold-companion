@@ -113,6 +113,10 @@ public sealed class BanScreenAnalyzer
 
         AnalysisBusyChanged?.Invoke(true);
         string? scrollMessage = null;
+        byte[]? diagnosticFrame = null;
+        var capturedAt = DateTimeOffset.Now;
+        var diagnosticRevision = CaptureRevisionProvider();
+        object diagnosticResult = new { Status = "分析未完成；请结合日志查看具体原因" };
         try
         {
             var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -144,7 +148,8 @@ public sealed class BanScreenAnalyzer
                 return;
             }
 
-            AppLogger.SaveArtifact("ban-attempt", ImageBytes.ToPng(shot), ".png");
+            diagnosticFrame = ImageBytes.ToPng(shot);
+            AppLogger.SaveArtifact("ban-attempt", diagnosticFrame, ".png");
             AppLogger.Info("BanAnalyzer", $"Screenshot ready: {rawWidth}x{rawHeight}");
 
             // 小图（例如被缩放过的录像截图）先把文字放大到 OCR 能读的尺寸；
@@ -185,6 +190,7 @@ public sealed class BanScreenAnalyzer
                     };
                 }
                 AppLogger.Info("BanAnalyzer", $"Panel read after {scrolls} scroll(s): core={read.Core.Count}, additional={read.Additional.Count}, incompleteAdditional={read.HasIncompleteAdditionalRows}, needsScroll={read.NeedsScroll}");
+                diagnosticResult = new { Status = "本局信息读取中；包含滚动合并的盟约结果，截图对应最后一帧", Read = read, Scrolls = scrolls };
                 if (!read.NeedsScroll) break;
                 scrollMessage = "附加盟约未完整显示。请向下滚动左侧盟约面板，确保最后一行图标和名称完整可见后，再点击“重新录入”。";
                 if (scrolls == 3 || ScrollInformationPanelAsync is not { } scroll
@@ -205,7 +211,10 @@ public sealed class BanScreenAnalyzer
                 shotHash = HashShot(next);
                 var (nextWidth, nextHeight) = GetPngDimensions(next);
                 (shot, imgWidth, imgHeight) = ScreenshotNormalizer.EnsureAnalysable(next, nextWidth, nextHeight);
-                AppLogger.SaveArtifact("ban-scroll", ImageBytes.ToPng(shot), ".png");
+                capturedAt = DateTimeOffset.Now;
+                diagnosticFrame = ImageBytes.ToPng(shot);
+                diagnosticResult = new { Status = "滚动后分析未完成；此前盟约结果属于前一帧，请结合日志查看" };
+                AppLogger.SaveArtifact("ban-scroll", diagnosticFrame, ".png");
             }
             scrollMessage = null;
 
@@ -265,6 +274,8 @@ public sealed class BanScreenAnalyzer
             if (hasEnemy) EnemyDetected?.Invoke(enemy!);
             else AppLogger.Warn("BanAnalyzer", "Covenant Ban read succeeded, but enemy region was incomplete; publishing covenant result only");
             LogResults(result, sw.ElapsedMilliseconds);
+            diagnosticResult = new { Status = hasEnemy ? "识别完成" : "盟约已录入，敌人信息未完整读出",
+                Note = "盟约可能包含滚动合并结果；画面对应最后一次分析截图", Result = result, Enemy = enemy, ElapsedMs = sw.ElapsedMilliseconds };
 
             _lastShotHash = shotHash;
             _lastCaptureRevision = captureRevision;
@@ -279,11 +290,14 @@ public sealed class BanScreenAnalyzer
         }
         catch (Exception ex)
         {
+            diagnosticResult = new { Status = "本局信息识别异常", Error = ex.ToString() };
             AppLogger.Error("BanAnalyzer", "Analysis failed", ex);
             AnalysisFailed?.Invoke("本次录入失败，未替换现有结果；详细原因已记录到日志。");
         }
         finally
         {
+            if (diagnosticFrame is not null && diagnosticRevision == CaptureRevisionProvider())
+                RecognitionDiagnostics.Record(capturedAt, "本局信息页识别", diagnosticFrame, diagnosticResult);
             AnalysisBusyChanged?.Invoke(false);
             Interlocked.Exchange(ref _running, 0);
             if (scrollMessage is not null && !_scrollReminderShown)

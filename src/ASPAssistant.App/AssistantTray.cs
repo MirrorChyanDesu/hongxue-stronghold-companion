@@ -34,7 +34,7 @@ internal sealed class AssistantTray : IDisposable
             Tip = "鸿雪·卫戍助手 · 点击恢复助手", Info = "", InfoTitle = ""
         };
         var icons = new IntPtr[1];
-        if (ExtractIconEx(Path.Combine(AppContext.BaseDirectory, "ASPAssistant.App.exe"), 0, null, icons, 1) == 1)
+        if (ExtractIconEx(Path.Combine(AppContext.BaseDirectory, "HongxueCompanion.exe"), 0, null, icons, 1) == 1)
             _icon.Icon = icons[0];
         panel.ToggleAssistantVisibilityRequested += Toggle;
     }

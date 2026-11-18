@@ -20,7 +20,7 @@ public partial class App : Application
     static App()
     {
         var ui = new System.Windows.Media.FontFamily(
-            "pack://application:,,,/ASPAssistant.App;component/Resources/Fonts/#Noto Sans SC, Microsoft YaHei UI, Segoe UI");
+            "pack://application:,,,/HongxueCompanion;component/Resources/Fonts/#Noto Sans SC, Microsoft YaHei UI, Segoe UI");
         foreach (var type in new[] { typeof(Window), typeof(System.Windows.Controls.ToolTip), typeof(System.Windows.Controls.ContextMenu) })
         {
             try
@@ -165,6 +165,8 @@ public partial class App : Application
         var settingsDir = UserSettingsDirectory.Prepare(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             Environment.GetEnvironmentVariable("ASPASSISTANT_SETTINGS_DIR"));
+        // Program's named mutex excludes another app instance; the short-lived root launcher has the same file name.
+        var configurationImport = ConfigurationArchive.ApplyPending(settingsDir);
 
         // Data layer
         var dataStore = new JsonDataStore(dataDir);
@@ -317,6 +319,7 @@ public partial class App : Application
             ThemeDetector = new GameShopThemeDetector(Path.Combine(dataDir, "shop_theme_refs.json")),
             AutomaticGameTheme = automaticGameTheme,
             AutomaticPurchaseTracking = await _settingsManager.LoadAutomaticPurchaseTrackingAsync(),
+            PurchaseSpeed = await _settingsManager.LoadPurchaseRecognitionSpeedAsync(),
             BoardRecognizer = boardData is null ? null : new BoardRecognizer(boardData),
             PurchaseTargets = () => purchaseNames,
         };
@@ -334,11 +337,14 @@ public partial class App : Application
             new LineupPlanner(operators, covenantInfos), covenantInfos, appearance: appearance,
             closeBehavior: await _settingsManager.LoadMainWindowCloseBehaviorAsync());
         sidePanel.InitGameStartSettings(await _settingsManager.LoadGameStartSettingsAsync());
+        if (configurationImport is not null) sidePanel.ShowConfigurationImportResult(configurationImport);
         sidePanel.GameThemeChanged += theme => shopReader.Theme = theme;
         sidePanel.InitAutomaticGameTheme(automaticGameTheme);
         sidePanel.AutomaticGameThemeChanged += automatic => _ocrScanner.AutomaticGameTheme = automatic;
         sidePanel.InitAutomaticPurchaseTracking(_ocrScanner.AutomaticPurchaseTracking);
         sidePanel.AutomaticPurchaseTrackingChanged += enabled => _ocrScanner.AutomaticPurchaseTracking = enabled;
+        sidePanel.InitPurchaseRecognitionSpeed(_ocrScanner.PurchaseSpeed);
+        sidePanel.PurchaseRecognitionSpeedChanged += speed => _ocrScanner.PurchaseSpeed = speed;
         _ocrScanner.GameThemeDetected += theme => Dispatcher.Invoke(() => sidePanel.ApplyDetectedGameTheme(theme));
         var overlay = _overlay = new OverlayWindow()
         {

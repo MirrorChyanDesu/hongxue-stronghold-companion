@@ -470,6 +470,18 @@
                                             </StackPanel>
                                         </DockPanel>
                                         <!-- Deployment grid overlay: retired (the placement labels are enough); kept hidden for its handlers. -->
+                                        <StackPanel x:Name="PurchaseSpeedControls" Margin="0,10,0,0">
+                                            <TextBlock Text="购买识别速度" FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,6" />
+                                            <ListBox x:Name="PurchaseSpeedSelector" Style="{StaticResource SegmentedListBox}" SelectedIndex="0"
+                                                     IsEnabled="{Binding IsChecked, ElementName=AutomaticPurchaseTrackingToggle}"
+                                                     AutomationProperties.Name="购买识别速度">
+                                                <ListBoxItem Content="标准" />
+                                                <ListBoxItem Content="快速" />
+                                                <ListBoxItem Content="极速" />
+                                            </ListBox>
+                                            <TextBlock x:Name="PurchaseSpeedHint" Text="商店展开时生效；速度越快，处理器占用可能越高。" FontSize="11" TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,0" />
+                                        </StackPanel>
                                         <Border Height="1" Margin="-10,10" Background="{DynamicResource LineBrush}" Visibility="Collapsed" />
                                         <DockPanel Visibility="Collapsed">
                                             <CheckBox x:Name="BoardOverlayToggle" DockPanel.Dock="Right" Style="{StaticResource SwitchToggle}" VerticalAlignment="Center"
@@ -659,6 +671,35 @@
                                                        FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}" />
                                         </StackPanel>
                                     </DockPanel>
+                                </Border>
+                                <Button x:Name="UpdateHistoryButton" Content="更新日志" Click="OnOpenUpdateHistory" Style="{StaticResource SmallActionButton}" HorizontalAlignment="Left" Margin="0,8,0,10" />
+                                <TextBlock Text="数据" Style="{StaticResource SettingsCaption}" />
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <StackPanel x:Name="ConfigurationControls">
+                                        <TextBlock Text="配置保存路径" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        <TextBox x:Name="ConfigurationDirectoryText" IsReadOnly="True" Style="{StaticResource DialogTextBox}" TextWrapping="Wrap"
+                                                 FontSize="11" Margin="0,6,0,10" AutomationProperties.Name="配置保存路径" />
+                                        <WrapPanel>
+                                            <Button x:Name="ExportFullConfigurationButton" Content="导出完整配置" Click="OnExportConfiguration" Tag="Full" Style="{StaticResource SmallActionButton}" Margin="0,0,6,6" />
+                                            <Button x:Name="ExportSoftwareConfigurationButton" Content="导出软件配置" Click="OnExportConfiguration" Tag="Software" Style="{StaticResource SmallActionButton}" Margin="0,0,0,6" />
+                                            <Button x:Name="ExportLineupConfigurationButton" Content="导出阵容配置" Click="OnExportConfiguration" Tag="Lineups" Style="{StaticResource SmallActionButton}" Margin="0,0,6,6" />
+                                            <Button x:Name="ImportConfigurationButton" Content="导入配置" Click="OnImportConfiguration" Style="{StaticResource SmallActionButton}" Margin="0,0,0,6" />
+                                        </WrapPanel>
+                                        <TextBlock x:Name="ConfigurationStatusText" Text="完整配置含软件设置、阵容和追踪；阵容配置仅含阵容及排序。导入后需完全退出助手，再手动启动。"
+                                                   FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="反馈" Style="{StaticResource SettingsCaption}" />
+                                <Border Style="{StaticResource SettingsCard}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="FeedbackTitle" Text="遇到报错或识别问题？" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        <TextBlock Text="填写问题、预览诊断内容并导出反馈包。截图由你选择附上。" FontSize="11" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,10" />
+                                        <WrapPanel>
+                                            <Button x:Name="FeedbackButton" Content="反馈与诊断" Click="OnOpenFeedback" Style="{StaticResource SmallActionButton}" Margin="0,0,8,4" />
+                                            <Button x:Name="RecognitionFeedbackButton" Content="识别有误" Click="OnOpenFeedback" Style="{StaticResource SmallActionButton}" Margin="0,0,0,4" />
+                                        </WrapPanel>
+                                    </StackPanel>
                                 </Border>
                                 <TextBlock x:Name="ProjectAddressText" HorizontalAlignment="Center" Margin="0,10,0,8" FontSize="12">
                                     <Hyperlink x:Name="ProjectAddressLink" NavigateUri="https://github.com/bingyunhe/hongxue-stronghold-companion"

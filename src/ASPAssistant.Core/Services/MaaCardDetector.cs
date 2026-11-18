@@ -83,7 +83,10 @@ public sealed class MaaCardDetector : ICardDetector, IDisposable
         {
             using var imgBuf = new MaaImageBuffer();
             if (!imgBuf.TrySetEncodedData(pngBytes))
+            {
+                AppLogger.RecognitionFailure("CardDetector", "decode", $"Invalid encoded image; roi={roiX},{roiY},{roiWidth},{roiHeight}");
                 return [];
+            }
 
             var templateName = GetScaledTemplateName(imgWidth, imgHeight);
 
@@ -92,12 +95,19 @@ public sealed class MaaCardDetector : ICardDetector, IDisposable
             var paramJson = $$"""{"roi":[{{roiX}},{{roiY}},{{roiWidth}},{{roiHeight}}],"template":"{{templateName}}","threshold":{{threshold}},"order_by":"Horizontal","green_mask":true,"method":10001}""";
 
             var job = _tasker.AppendRecognition("TemplateMatch", paramJson, imgBuf);
-            if (job.Wait() != MaaJobStatus.Succeeded)
+            var status = job.Wait();
+            if (status != MaaJobStatus.Succeeded)
+            {
+                AppLogger.RecognitionFailure("CardDetector", "job", $"status={status}; roi={roiX},{roiY},{roiWidth},{roiHeight}");
                 return [];
+            }
 
             _tasker.GetTaskDetail(job.Id, out _, out long[]? nodeIds, out _);
             if (nodeIds is not { Length: > 0 })
+            {
+                AppLogger.RecognitionFailure("CardDetector", "detail", "Missing node details");
                 return [];
+            }
 
             _tasker.GetNodeDetail(nodeIds[0], out _, out long recoId, out _, out _);
 
@@ -110,8 +120,9 @@ public sealed class MaaCardDetector : ICardDetector, IDisposable
 
             return ParseAllBoxes(detailJson);
         }
-        catch
+        catch (Exception ex)
         {
+            AppLogger.RecognitionFailure("CardDetector", "exception", ex.ToString());
             return [];
         }
     }
@@ -197,7 +208,10 @@ public sealed class MaaCardDetector : ICardDetector, IDisposable
                              arr[2].GetInt32(), arr[3].GetInt32())];
             }
         }
-        catch { }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or InvalidOperationException or KeyNotFoundException or IndexOutOfRangeException)
+        {
+            AppLogger.RecognitionFailure("CardDetector", "parse", ex.ToString());
+        }
 
         return [];
     }

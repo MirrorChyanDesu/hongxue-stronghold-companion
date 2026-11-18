@@ -17,6 +17,7 @@ public sealed class ShopReader(IOcrEngine engine, IReadOnlyList<string> catalogN
     private volatile GameShopTheme _theme = GameShopTheme.Terminal;
     public GameShopTheme Theme { get => _theme; set => _theme = value; }
     public bool IsShopOpen { get; private set; }
+    public string DiagnosticText { get; private set; } = "";
     private (double X, double Y, double Width, double Height) _controlRegion;
     private (double Left, double Width)[] _cardSlots = [];
 
@@ -24,6 +25,7 @@ public sealed class ShopReader(IOcrEngine engine, IReadOnlyList<string> catalogN
         byte[] screenshot, int width, int height, IReadOnlyList<string> trackedNames)
     {
         IsShopOpen = false;
+        DiagnosticText = "";
         if (trackedNames.Count == 0)
             return [];
         var theme = Theme;
@@ -57,6 +59,8 @@ public sealed class ShopReader(IOcrEngine engine, IReadOnlyList<string> catalogN
         // 24-bit BMP: no PNG encode/decode on every scan tick (see ImageBytes)
         var encoded = ImageBytes.Encode(strip);
         var texts = (await engine.RecognizeRegionAsync(encoded, 0, 0, strip.Width, strip.Height)).ToList();
+        DiagnosticText = $"底部区域放大图 {strip.Width}x{strip.Height}；坐标相对于放大图；原图底部起点 y={canvasTop}：\n" +
+            string.Join("\n", texts.Select(t => $"{t.Text} @ {t.Box}"));
         var control = texts.FirstOrDefault(t => t.Text.Contains("收起", StringComparison.Ordinal)
             && t.Box.X + t.Box.W > width * 1.6);
         if (control is null)
@@ -65,6 +69,7 @@ public sealed class ShopReader(IOcrEngine engine, IReadOnlyList<string> catalogN
             int controlLeft = Math.Max((int)(strip.Width * .65), strip.Width - height);
             var controls = await engine.RecognizeRegionAsync(encoded, controlLeft, 0,
                 strip.Width - controlLeft, strip.Height);
+            DiagnosticText += "\n控件复查：" + string.Join("; ", controls.Select(t => $"{t.Text} @ {t.Box}"));
             control = controls.FirstOrDefault(t => t.Text.Contains("收起", StringComparison.Ordinal));
         }
         if (control is null)
@@ -182,6 +187,7 @@ public sealed class ShopReader(IOcrEngine engine, IReadOnlyList<string> catalogN
         }
         encoded = ImageBytes.Encode(strip);
         var recovered = await engine.RecognizeRegionAsync(encoded, 0, 0, strip.Width, strip.Height);
+        DiagnosticText += "\n增强识别：" + string.Join("; ", recovered.Select(t => $"{t.Text} @ {t.Box}"));
         var mapped = recovered.Select(t => t.Box.Y + t.Box.H / 2.0 < nameTop
             ? t with { Box = (t.Box.X, t.Box.Y + nameTop
                 - (t.Box.Y + t.Box.H / 2.0 < 170 ? 60 : 200), t.Box.W, t.Box.H) } : t).ToList();
@@ -209,6 +215,7 @@ public sealed class ShopReader(IOcrEngine engine, IReadOnlyList<string> catalogN
                     int lineWidth = (int)Math.Round(pitch * fraction * 2);
                     var lines = await engine.RecognizeLineAsync(encoded, lineLeft,
                         nameTop, lineWidth, nameHeight);
+                    DiagnosticText += $"\n单行区域 {lineLeft},{nameTop},{lineWidth},{nameHeight}：" + string.Join("; ", lines.Select(t => t.Text));
                     var matches = MatchNames(lines.Select(t => new OcrTextResult(
                         t.Text.Replace("斯卡菜", "斯卡蒂").Replace("复泰", "复奏"),
                         (lineLeft, nameTop, lineWidth, nameHeight))).ToList(), width, height, canvasTop, _names).Where(IsOnNameRow).ToList();

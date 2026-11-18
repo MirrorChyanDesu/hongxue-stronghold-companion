@@ -49,11 +49,11 @@ jobs:
             -c Release -r win-x64 --self-contained true `
             -p:Version=${{ env.VERSION }} `
             -p:DebugType=None -p:DebugSymbols=false `
-            -o "publish/$env:PACKAGE_NAME"
+            -o "publish/$env:PACKAGE_NAME/app"
       - name: Trim symbols and unused runtimes
         shell: pwsh
         run: |
-          $out = (Resolve-Path "publish/$env:PACKAGE_NAME").Path
+          $out = (Resolve-Path "publish/$env:PACKAGE_NAME/app").Path
           Get-ChildItem -LiteralPath $out -Filter *.pdb -File | Remove-Item
           $runtimeRoot = Join-Path $out "runtimes"
           Get-ChildItem -LiteralPath $runtimeRoot -Directory |
@@ -69,13 +69,19 @@ jobs:
         shell: pwsh
         run: |
           foreach ($dll in @("vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll")) {
-            Copy-Item -LiteralPath (Join-Path "C:\Windows\System32" $dll) -Destination "publish/$env:PACKAGE_NAME"
+            Copy-Item -LiteralPath (Join-Path "C:\Windows\System32" $dll) -Destination "publish/$env:PACKAGE_NAME/app"
           }
+      - name: Prepare organized portable package
+        shell: pwsh
+        run: |
+          ./.github/scripts/Test-PortableLauncher.ps1
+          ./.github/scripts/Test-LegacyPortableLauncher.ps1
+          ./.github/scripts/Prepare-PortablePackage.ps1 -PackageDirectory "publish/$env:PACKAGE_NAME" -Version $env:VERSION -Commit (git rev-parse HEAD)
       - name: Zip release assets
         shell: pwsh
         run: |
           foreach ($file in @("LICENSE", "LICENSE.upstream", "NOTICE")) {
-            if (-not (Test-Path -LiteralPath (Join-Path "publish/$env:PACKAGE_NAME" $file))) {
+            if (-not (Test-Path -LiteralPath (Join-Path "publish/$env:PACKAGE_NAME/licenses" $file))) {
               throw "Missing distribution notice: $file"
             }
           }
@@ -113,9 +119,17 @@ jobs:
               throw 'ZIP 必须只包含一个与压缩包同名的顶层文件夹'
             }
             $packageRoot = $topLevel[0].FullName
+            $appRoot = Join-Path $packageRoot 'app'
+            $rootNames = @(Get-ChildItem -LiteralPath $packageRoot -Force | ForEach-Object Name | Sort-Object)
+            $allowed = @('HongxueCompanion.exe', 'ASPAssistant.App.exe', 'app', 'licenses', 'update-layout.json', '使用说明.txt') | Sort-Object
+            if (Compare-Object $rootNames $allowed) { throw '安装根目录包含非预期文件或缺少入口' }
+            $layout = Get-Content -LiteralPath (Join-Path $packageRoot 'update-layout.json') -Raw | ConvertFrom-Json
+            if ($layout.formatVersion -ne 1 -or $layout.executable -cne 'app/HongxueCompanion.exe') {
+              throw '自动更新入口声明不正确'
+            }
 
             foreach ($file in @('LICENSE', 'LICENSE.upstream', 'NOTICE')) {
-              if (-not (Test-Path -LiteralPath (Join-Path $packageRoot $file) -PathType Leaf)) {
+              if (-not (Test-Path -LiteralPath (Join-Path $packageRoot "licenses/$file") -PathType Leaf)) {
                 throw "包内应用目录缺少许可文件 $file"
               }
             }
@@ -123,22 +137,19 @@ jobs:
               throw '包内不应包含仅在本机维护的 MODIFICATIONS.md'
             }
 
-            $exe = Join-Path $packageRoot 'ASPAssistant.App.exe'
-            if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) {
-              throw '包内应用目录缺少 ASPAssistant.App.exe'
+            foreach ($file in @('HongxueCompanion.exe', 'ASPAssistant.App.exe', 'app/HongxueCompanion.exe', 'app/HongxueCompanion.dll', 'app/HongxueCompanion.Core.dll')) {
+              $exe = Join-Path $packageRoot $file
+              if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw "包内缺少 $file" }
+              $vi = (Get-Item -LiteralPath $exe).VersionInfo
+              $versionPrefix = "^$([regex]::Escape($expected))(?:[.+]|$)"
+              if ($file -notlike '*Core.dll' -and ($vi.FileVersion -notmatch $versionPrefix -or $vi.ProductVersion -notmatch $versionPrefix)) {
+                throw "$file 的版本信息与 tag $expected 不一致"
+              }
             }
-            $vi = (Get-Item -LiteralPath $exe).VersionInfo
-            # Accept .0 and +commit suffixes without matching 1.3.10 against 1.3.1.
-            $versionPrefix = "^$([regex]::Escape($expected))(?:[.+]|$)"
-            if ($vi.FileVersion -notmatch $versionPrefix) {
-              throw "FileVersion=$($vi.FileVersion) 与 tag $expected 不一致，请检查发布版本参数与 csproj 的 <Version>"
-            }
-            if ($vi.ProductVersion -notmatch $versionPrefix) {
-              throw "ProductVersion=$($vi.ProductVersion) 与 tag $expected 不一致"
-            }
+            $vi = (Get-Item -LiteralPath (Join-Path $appRoot 'HongxueCompanion.exe')).VersionInfo
 
-            $bosses = Get-Content -LiteralPath (Join-Path $packageRoot 'data/bosses.json') -Raw | ConvertFrom-Json
-            $types = Get-Content -LiteralPath (Join-Path $packageRoot 'data/enemy_types.json') -Raw | ConvertFrom-Json
+            $bosses = Get-Content -LiteralPath (Join-Path $appRoot 'data/bosses.json') -Raw | ConvertFrom-Json
+            $types = Get-Content -LiteralPath (Join-Path $appRoot 'data/enemy_types.json') -Raw | ConvertFrom-Json
             if ($bosses.bosses -isnot [array] -or $bosses.bosses.Count -lt 1) {
               throw 'data/bosses.json 的 bosses 必须是非空数组'
             }
@@ -158,11 +169,11 @@ jobs:
             }
             if ($variantCount -lt 1) { throw 'data/enemy_types.json 里没有任何敌人变体' }
 
-            $iconsDir = Join-Path $packageRoot 'data/icons'
+            $iconsDir = Join-Path $appRoot 'data/icons'
             $iconCount = @(Get-ChildItem -LiteralPath $iconsDir -Recurse -File -Filter '*.png').Count
             if ($iconCount -lt 1) { throw 'data/icons 下没有任何 PNG' }
             foreach ($dll in @('msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll')) {
-              if (-not (Test-Path -LiteralPath (Join-Path $packageRoot $dll) -PathType Leaf)) {
+              if (-not (Test-Path -LiteralPath (Join-Path $appRoot $dll) -PathType Leaf)) {
                 throw "包内应用目录缺少 $dll"
               }
             }

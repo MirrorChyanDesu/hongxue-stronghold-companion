@@ -69,7 +69,7 @@ internal static class AppExitProbe
             var app = new ProbeApplication(args[1], folder);
             foreach (var resource in new[] { "Themes/Terminal.Dark.xaml", "Styles.xaml", "Logo.xaml" })
                 app.Resources.MergedDictionaries.Add(new ResourceDictionary
-                { Source = new Uri($"/ASPAssistant.App;component/Resources/{resource}", UriKind.Relative) });
+                { Source = new Uri($"/HongxueCompanion;component/Resources/{resource}", UriKind.Relative) });
             var code = app.Run();
             return app.ExitObserved ? code : 25;
         }

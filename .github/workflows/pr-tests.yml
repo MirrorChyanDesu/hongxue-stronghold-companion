@@ -51,6 +51,14 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
+      - name: Verify portable entry points
+        if: matrix.group == 'update'
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'test-results'
+          New-Item -ItemType Directory -Path $out -Force | Out-Null
+          ./.github/scripts/Test-PortableLauncher.ps1 | ConvertTo-Json | Set-Content (Join-Path $out 'portable-launcher.json')
+          ./.github/scripts/Test-LegacyPortableLauncher.ps1 | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $out 'legacy-launcher.json')
       - name: Run test group
         shell: pwsh
         run: ./.github/scripts/Invoke-TestGroup.ps1 -Group '${{ matrix.group }}' -ResultsDirectory "${{ runner.temp }}/test-results"

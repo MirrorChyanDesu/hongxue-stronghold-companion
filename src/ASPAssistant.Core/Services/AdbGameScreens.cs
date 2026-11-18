@@ -10,7 +10,7 @@ public static class AdbGameScreens
     public static string Run(string adbPath, IEnumerable<string> arguments)
     {
         var start = new ProcessStartInfo(adbPath) { UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardOutput = true, RedirectStandardError = true };
+            RedirectStandardOutput = true, RedirectStandardError = true, StandardOutputEncoding = System.Text.Encoding.UTF8, StandardErrorEncoding = System.Text.Encoding.UTF8 };
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
         using var process = Process.Start(start) ?? throw new IOException("无法启动 adb.exe");
         var output = process.StandardOutput.ReadToEndAsync();
