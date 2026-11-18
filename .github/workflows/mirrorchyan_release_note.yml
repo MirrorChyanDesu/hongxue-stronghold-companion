@@ -11,7 +11,7 @@ on:
 
 jobs:
   mirrorchyan:
-    if: ${{ github.repository_owner == 'bingyunhe' && (github.event_name != 'release' || !github.event.release.draft) }}
+    if: ${{ github.repository_owner == 'bingyunhe' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
